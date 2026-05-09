@@ -65,7 +65,7 @@ class ComplaintsDoctorCase extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                "أورام",
+                                " أورام",
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,
