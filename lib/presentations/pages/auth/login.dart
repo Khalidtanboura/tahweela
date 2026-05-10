@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tahweela/core/theme.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 import 'package:tahweela/presentations/widgets/textfield.dart';
 
 class Login extends StatelessWidget {
@@ -65,31 +66,13 @@ class Login extends StatelessWidget {
                     const SizedBox(height: 30),
 
                     // زر تسجيل الدخول
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, 'usermanagment');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1B9E4F),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        child: const Text(
-                          'تسجيل الدخول',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
+              ),
+              customReplacementButton(
+                context: context,
+                nextScreen: 'usermanagment',
+                text: 'تسجيل الدخول',
               ),
 
               const SizedBox(height: 30),

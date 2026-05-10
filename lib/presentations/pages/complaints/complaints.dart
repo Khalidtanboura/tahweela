@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 
 import '../../widgets/card.dart';
 
@@ -66,26 +67,7 @@ class _ComplaintsState extends State<Complaints> {
                     const SizedBox(height: 30),
 
                     // Submit Button (زر إرسال الشكوى)
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF27AE60),
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      onPressed: () {
-                        // منطق الإرسال هنا
-                      },
-                      child: const Text(
-                        "إرسال الشكوى",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    customButton(text: 'إرسال الشكوى', onTap: () {}),
                   ],
                 ),
               ),

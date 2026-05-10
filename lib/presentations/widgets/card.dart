@@ -13,6 +13,7 @@ Widget appbarCard({
     ),
     padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 33),
     child: Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Icon(icon1, color: Colors.white, size: 28),
         const SizedBox(width: 15),
@@ -37,13 +38,7 @@ Widget CaseCard({
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: Colors.blue.shade50),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.03),
-          blurRadius: 10,
-          offset: const Offset(0, 5),
-        ),
-      ],
+      boxShadow: [],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,6 +47,14 @@ Widget CaseCard({
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // زر الحالة (Tag)
+            Text(
+              id,
+              style: const TextStyle(
+                color: Color(0xFF1E5CC8),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -67,38 +70,25 @@ Widget CaseCard({
                 ),
               ),
             ),
+
             // رقم الحالة
-            Text(
-              id,
-              style: const TextStyle(
-                color: Color(0xFF1E5CC8),
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 10),
         // اسم المريض (إذا وجد)
         if (patientName.isNotEmpty)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              patientName,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+          Text(
+            patientName,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
         // التخصص
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            specialty,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-          ),
+        Text(
+          specialty,
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
       ],
     ),
@@ -289,6 +279,49 @@ Widget SecoundCard({
           lableText,
           style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
+      ],
+    ),
+  );
+}
+
+Widget myContentBox(String text, {Color textColor = Colors.black54}) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    height: 120,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(25),
+      border: Border.all(color: Colors.grey.shade300),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: textColor, fontSize: 16, height: 1.5),
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+
+Widget sectionCard({required String title, required Widget child}) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(25),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 15),
+        child,
       ],
     ),
   );

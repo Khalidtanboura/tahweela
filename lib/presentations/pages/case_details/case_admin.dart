@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 
 import '../../widgets/card.dart';
 
@@ -20,8 +21,8 @@ class CaseAdmin extends StatelessWidget {
                 title: 'تفاصيل الحالة',
                 context: context,
               ),
-              SingleChildScrollView(
-                child: Column(
+              Expanded(
+                child: ListView(
                   children: [
                     SizedBox(height: 20),
                     Container(
@@ -66,29 +67,15 @@ class CaseAdmin extends StatelessWidget {
                           ),
                           SizedBox(height: 22),
                           // 3. Action Button (اعتماد الحالة)
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF27AE60),
-                              minimumSize: const Size(double.infinity, 60),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                            onPressed: () {},
-                            child: const Text(
-                              "اعتماد الحالة وتحويلها للمراجعة الطبية",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          customButton(
+                            text: 'اعتماد الحالة وتحويلها للمراجعة الطبية',
+                            onTap: () {},
                           ),
 
                           const SizedBox(height: 25),
 
                           // 4. Attachments Section (المرفقات الطبية)
-                          _buildSectionCard(
+                          sectionCard(
                             title: "المرفقات الطبية",
                             child: Container(
                               padding: const EdgeInsets.all(12),
@@ -133,7 +120,7 @@ class CaseAdmin extends StatelessWidget {
                           const SizedBox(height: 20),
 
                           // 5. Notes Section (نص الملاحظات)
-                          _buildSectionCard(
+                          sectionCard(
                             title: "نص الملاحظات",
 
                             child: TextField(maxLines: 4),
@@ -150,29 +137,4 @@ class CaseAdmin extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _buildSectionCard({required String title, required Widget child}) {
-  return Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(25),
-      border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 15),
-        child,
-      ],
-    ),
-  );
 }

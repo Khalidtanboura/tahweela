@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primaryGreen = Color(0xFF16A34A);
+  static const Color primaryGreen = Color(0xFF1B9E4F);
   static const Color secondaryBlue = Color(0xFF1D4ED8);
   static const Color surfaceLight = Color(0xFFF8FAFC);
   static const Color softGreen = Color(0xFFF0FDF4);
@@ -64,7 +64,7 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(15),
           ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),

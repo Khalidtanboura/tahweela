@@ -14,21 +14,21 @@ class _ComplaintsViewState extends State<ComplaintsView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section
-            secoundAppbarCard(
-              icon1: Icons.reply,
-              title: 'الشكاوي',
-              context: context,
-            ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          child: Column(
+            children: [
+              // Header Section
+              secoundAppbarCard(
+                icon1: Icons.reply,
+                title: 'الشكاوي',
+                context: context,
+              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Tab Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+              // Tab Buttons
+              Row(
                 children: [
                   Expanded(
                     child: _buildTabButton("شكاوي الأطباء", isSelected: false),
@@ -39,53 +39,52 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                   ),
                 ],
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Complaints List
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const [
-                  ComplaintCard(
-                    id: "TH-2026-00008",
-                    name: "خالد المريض",
-                    department: "جراحة عامة",
-                    date: "15/05/2050",
-                    status: "مقبول",
-                    statusColor: Colors.green,
-                  ),
-                  ComplaintCard(
-                    id: "TH-2026-00002",
-                    name: "محمد المريض",
-                    department: "جراحة عظام",
-                    date: "15/05/2050",
-                    status: "قيد المراجعة",
-                    statusColor: Color(0xFFFFEAA7),
-                    statusTextColor: Colors.orange,
-                  ),
-                  ComplaintCard(
-                    id: "TH-2026-00003",
-                    name: "سعيد المريض",
-                    department: "أورام",
-                    date: "15/05/2050",
-                    status: "مرفوضة",
-                    statusColor: Colors.red,
-                  ),
-                  ComplaintCard(
-                    id: "DR-2026-00011",
-                    name: "الدكتور سعيد",
-                    department: "أورام",
-                    date: "15/05/2050",
-                    status: "قيد المراجعة",
-                    statusColor: Color(0xFFFFEAA7),
-                    statusTextColor: Colors.orange,
-                  ),
-                ],
+              // Complaints List
+              Expanded(
+                child: ListView(
+                  children: const [
+                    ComplaintCard(
+                      id: "TH-2026-00008",
+                      name: "خالد المريض",
+                      department: "جراحة عامة",
+                      date: "15/05/2050",
+                      status: "مقبول",
+                      statusColor: Colors.green,
+                    ),
+                    ComplaintCard(
+                      id: "TH-2026-00002",
+                      name: "محمد المريض",
+                      department: "جراحة عظام",
+                      date: "15/05/2050",
+                      status: "قيد المراجعة",
+                      statusColor: Color(0xFFFFEAA7),
+                      statusTextColor: Colors.orange,
+                    ),
+                    ComplaintCard(
+                      id: "TH-2026-00003",
+                      name: "سعيد المريض",
+                      department: "أورام",
+                      date: "15/05/2050",
+                      status: "مرفوضة",
+                      statusColor: Colors.red,
+                    ),
+                    ComplaintCard(
+                      id: "DR-2026-00011",
+                      name: "الدكتور سعيد",
+                      department: "أورام",
+                      date: "15/05/2050",
+                      status: "قيد المراجعة",
+                      statusColor: Color(0xFFFFEAA7),
+                      statusTextColor: Colors.orange,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

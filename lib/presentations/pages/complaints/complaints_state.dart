@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
+import 'package:tahweela/presentations/widgets/text.dart';
 
 class ComplaintsState extends StatefulWidget {
   const ComplaintsState({super.key});
@@ -15,7 +17,7 @@ class _ComplaintsStateState extends State<ComplaintsState> {
       backgroundColor: const Color(0xffF8FAFC),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Column(
             children: [
               // Header Section
@@ -28,7 +30,6 @@ class _ComplaintsStateState extends State<ComplaintsState> {
               SizedBox(height: 20),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(12),
                   children: [
                     // Blue Info Card
                     Container(
@@ -110,16 +111,16 @@ class _ComplaintsStateState extends State<ComplaintsState> {
                     const SizedBox(height: 25),
 
                     // Complaint Text Section
-                    _buildSectionTitle("نص الشكوى"),
-                    _buildContentBox(
+                    mySectionTitle("نص الشكوى"),
+                    myContentBox(
                       "اريد اعادة تقييم ...\nاشعر ان الاوراق ناقصة اثرت على التقييم ...",
                     ),
 
                     const SizedBox(height: 20),
 
                     // Reply Section
-                    _buildSectionTitle("الرد على الشكوى"),
-                    _buildContentBox(
+                    mySectionTitle("الرد على الشكوى"),
+                    myContentBox(
                       "التوجه للمستشفى - الطبيب المعالج\nلاعادة النظر في القضية",
                       textColor: Colors.grey,
                     ),
@@ -130,11 +131,11 @@ class _ComplaintsStateState extends State<ComplaintsState> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildOutlineButton("رفض شكوى", Colors.red),
+                          child: myOutlineButton("رفض شكوى", Colors.red),
                         ),
                         const SizedBox(width: 20),
                         Expanded(
-                          child: _buildOutlineButton(
+                          child: myOutlineButton(
                             "قبول شكوى",
                             Colors.green,
                           ), // ملاحظة: النص في الصورة كان مكرر "رفض"، قمت بتعديله للمنطق
@@ -150,53 +151,4 @@ class _ComplaintsStateState extends State<ComplaintsState> {
       ),
     );
   }
-}
-
-Widget _buildSectionTitle(String title) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8.0, right: 8.0),
-    child: Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    ),
-  );
-}
-
-Widget _buildContentBox(String text, {Color textColor = Colors.black54}) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    height: 120,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(25),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(color: textColor, fontSize: 16, height: 1.5),
-      textAlign: TextAlign.center,
-    ),
-  );
-}
-
-Widget _buildOutlineButton(String label, Color color) {
-  return Container(
-    height: 60,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: color),
-    ),
-    child: Center(
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ),
-  );
 }

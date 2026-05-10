@@ -6,7 +6,7 @@ import 'package:tahweela/presentations/pages/case_details/case_details_doctor.da
 import 'package:tahweela/presentations/pages/case_details/case_patient.dart';
 import 'package:tahweela/presentations/pages/case_details/case_review.dart';
 import 'package:tahweela/presentations/pages/case_details/review.dart';
-import 'package:tahweela/presentations/pages/cases_list.dart';
+import 'package:tahweela/presentations/pages/case_details/cases_list.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints_doctor_patient.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints_patient_case.dart';
@@ -15,12 +15,12 @@ import 'package:tahweela/presentations/pages/complaints/complaints_state.dart';
 import 'package:tahweela/presentations/pages/home/admin.dart';
 import 'package:tahweela/presentations/pages/home/doctor.dart';
 import 'package:tahweela/presentations/pages/home/patient.dart';
-import 'package:tahweela/presentations/pages/login.dart';
+import 'package:tahweela/presentations/pages/auth/login.dart';
 import 'package:tahweela/presentations/pages/notification.dart';
 import 'package:tahweela/presentations/pages/profile.dart';
 import 'package:tahweela/presentations/pages/referral/new_referral.dart';
 import 'package:tahweela/presentations/pages/referral/secound_referral.dart';
-import 'package:tahweela/presentations/pages/splash.dart';
+import 'package:tahweela/presentations/pages/auth/splash.dart';
 import 'package:tahweela/presentations/pages/usermanagment.dart';
 import 'core/theme.dart';
 
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       // darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
-      initialRoute: 'complaintsDoctorCase',
+      initialRoute: 'review',
       locale: const Locale('ar', 'SA'),
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
 import 'package:tahweela/presentations/widgets/dropdown_menu.dart';
 import 'package:tahweela/presentations/widgets/textfield.dart';
@@ -19,12 +20,9 @@ class _UserManagmentState extends State<UserManagment> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xffF8FAFC),
-
-      // استخدامFloatingActionButton للزر الأخضر في الأسفل
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(18.0),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Column(
             children: [
               // 1. الحاوية العلوية مع التدرج اللوني (Gradient)
@@ -163,31 +161,16 @@ class _UserManagmentState extends State<UserManagment> {
                               ),
                             ),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
+                              child: customButton(
+                                text: 'إضافة',
+                                onTap: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('نجحت إضافة المستخدم'),
                                     ),
                                   );
                                   Navigator.pop(context);
-
-                                  // منطق الإضافة هنا
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 30,
-                                    vertical: 12,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'إضافة',
-                                  style: TextStyle(color: Colors.white),
-                                ),
                               ),
                             ),
                           ],

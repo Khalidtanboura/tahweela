@@ -111,7 +111,7 @@ class _CasePatientState extends State<CasePatient> {
                 ),
               ),
               Expanded(child: Container()),
-              Container(
+              SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () {},

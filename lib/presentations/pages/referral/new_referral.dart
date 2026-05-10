@@ -1,10 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 
 import 'package:flutter/material.dart';
-import 'package:tahweela/presentations/widgets/card.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 import 'package:tahweela/presentations/widgets/dropdown_menu.dart';
 
 import '../../../core/theme.dart';
+import '../../widgets/card.dart';
 
 class NewReferral extends StatefulWidget {
   const NewReferral({super.key});
@@ -35,15 +36,16 @@ class _NewReferralState extends State<NewReferral> {
 
     return Scaffold(
       body: SafeArea(
-        child: Container(
-          padding: EdgeInsets.all(12),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // appTitleCard(title: 'حالة تحويل جديدة'),
-                SizedBox(height: 22),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          child: Column(
+            children: [
+              appTitleCard(title: 'حالة تحويل جديدة'),
+              const SizedBox(height: 22),
+
+              // 2. قائمة المستخدمين
+              Expanded(
+                child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -51,7 +53,7 @@ class _NewReferralState extends State<NewReferral> {
                     border: Border.all(color: const Color(0xFFE0E6ED)),
                   ),
                   child: Form(
-                    child: Column(
+                    child: ListView(
                       children: [
                         _buildTextField('ادخل رقم الهوية', label: 'رقم الهوية'),
                         _buildTextField(
@@ -88,120 +90,115 @@ class _NewReferralState extends State<NewReferral> {
                             ),
                           ],
                         ),
+
+                        SizedBox(height: 12),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(color: const Color(0xFFE0E6ED)),
+                          ),
+                          child: Column(
+                            children: [
+                              // زر الاختيار
+                              OutlinedButton(
+                                onPressed: _pickFiles,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFF23A455),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 30,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  "اختيار ملف من الجهاز",
+                                  style: TextStyle(
+                                    color: Color(0xFF23A455),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // قائمة عرض الملفات المرفقة (كما في الصورة)
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _selectedFiles.length,
+                                itemBuilder: (context, index) {
+                                  final file = _selectedFiles[index];
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF8FAFD),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFE8EEF5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // الحجم والنوع (يسار)
+                                        Text(
+                                          "${file.extension?.toUpperCase()} • ${(file.size / 1024 / 1024).toStringAsFixed(1)} MB",
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        // اسم الملف (يمين)
+                                        Text(
+                                          file.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              const SizedBox(height: 30),
+
+                              // زر استمرار للرفع فعلياً
+                            ],
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(
+                            top: 32,
+                            left: 20,
+                            right: 20,
+                          ),
+
+                          width: double.infinity,
+                          height: 55,
+                          child: customButton(
+                            text: 'استمرار',
+                            onTap: () {
+                              Navigator.of(context).pushNamed('secondReferral');
+                            },
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(height: 12),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: const Color(0xFFE0E6ED)),
-                  ),
-                  child: Column(
-                    children: [
-                      // زر الاختيار
-                      OutlinedButton(
-                        onPressed: _pickFiles,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF23A455)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 12,
-                          ),
-                        ),
-                        child: const Text(
-                          "اختيار ملف من الجهاز",
-                          style: TextStyle(
-                            color: Color(0xFF23A455),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // قائمة عرض الملفات المرفقة (كما في الصورة)
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _selectedFiles.length,
-                        itemBuilder: (context, index) {
-                          final file = _selectedFiles[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFE8EEF5),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // الحجم والنوع (يسار)
-                                Text(
-                                  "${file.extension?.toUpperCase()} • ${(file.size / 1024 / 1024).toStringAsFixed(1)} MB",
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                // اسم الملف (يمين)
-                                Text(
-                                  file.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // زر استمرار للرفع فعلياً
-                    ],
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 32, left: 20, right: 20),
-
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('secondReferral');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF23A455),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: Text(
-                      ' استمرار',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

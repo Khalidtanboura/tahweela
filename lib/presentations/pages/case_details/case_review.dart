@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 
 import '../../widgets/card.dart';
+import '../../widgets/container.dart';
 
 class CaseReview extends StatelessWidget {
   const CaseReview({super.key});
@@ -57,57 +59,48 @@ class CaseReview extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // Case Files Section
-                    _buildSectionContainer(
+                    customSectionContainer(
                       title: "ملفات الحالة",
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F9FB),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "تقرير_طبي.pdf",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "تقرير_طبي.pdf",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  "PDF • 1.2 MB",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
                                   ),
-                                  Text(
-                                    "PDF • 1.2 MB",
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            _buildMiniButton(
-                              "تنزيل",
-                              const Color(0xFFE8F5E9),
-                              Colors.green,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildMiniButton(
-                              "فتح",
-                              const Color(0xFFE3F2FD),
-                              Colors.blue,
-                            ),
-                          ],
-                        ),
+                          ),
+                          customMiniButton(
+                            "تنزيل",
+                            const Color(0xFFE8F5E9),
+                            Colors.green,
+                          ),
+                          const SizedBox(width: 8),
+                          customMiniButton(
+                            "فتح",
+                            const Color(0xFFE3F2FD),
+                            Colors.blue,
+                          ),
+                        ],
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
                     // Medical Evaluation Section
-                    _buildSectionContainer(
+                    customSectionContainer(
                       title: "أسئلة التقييم الطبي",
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,14 +137,14 @@ class CaseReview extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildActionButton(
+                          child: customActionButton(
                             "رفض",
                             const Color(0xFFE32E2E),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildActionButton(
+                          child: customActionButton(
                             "اعادة نظر",
                             const Color(0xFFF0D678),
                             textColor: Colors.black,
@@ -159,7 +152,7 @@ class CaseReview extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _buildActionButton(
+                          child: customActionButton(
                             "قبول",
                             const Color(0xFF27AE60),
                           ),
@@ -170,75 +163,6 @@ class CaseReview extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionContainer({
-    required String title,
-    required Widget child,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 15),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniButton(String label, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    String label,
-    Color color, {
-    Color textColor = Colors.white,
-  }) {
-    return Container(
-      height: 55,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),

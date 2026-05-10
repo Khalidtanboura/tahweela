@@ -32,9 +32,13 @@ class _SplashState extends State<Splash> {
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFFE1F9EB),
+                color: Color(0xffDCFCE7),
               ),
-              child: Icon(Icons.add, size: 60),
+              child: Icon(
+                Icons.medical_services_sharp,
+                size: 60,
+                color: Color(0xff16A34A),
+              ),
             ),
             SizedBox(height: 26),
             Text('تحويلة', style: TextStyle(fontSize: 30, color: Colors.white)),

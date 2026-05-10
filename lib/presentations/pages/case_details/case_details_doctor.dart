@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/widgets/buttons.dart';
 
 import '../../widgets/card.dart';
+import '../../widgets/text.dart';
 
 class CaseDetailsDoctor extends StatelessWidget {
   const CaseDetailsDoctor({super.key});
@@ -23,7 +25,6 @@ class CaseDetailsDoctor extends StatelessWidget {
               SizedBox(height: 20),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
                     color: Color(0xffF8FAFC),
                     borderRadius: BorderRadius.circular(25),
@@ -66,8 +67,8 @@ class CaseDetailsDoctor extends StatelessWidget {
                         const SizedBox(height: 25),
 
                         // Appeal Text Field (نص إعادة النظر)
-                        _buildLabel("نص اعادة النظر"),
-                        _buildTextArea(
+                        buildLabel("نص اعادة النظر"),
+                        buildTextArea(
                           hint:
                               "الرجاء ارسال صورة اشعة جديدة ...\nالرجاء ارفاق ملف يظهر التفاصيل...",
                           height: 150,
@@ -76,32 +77,17 @@ class CaseDetailsDoctor extends StatelessWidget {
                         const SizedBox(height: 20),
 
                         // Doctor Response Field (رد الطبيب)
-                        _buildLabel("رد الطبيب"),
-                        _buildTextArea(hint: "", height: 80),
+                        buildLabel("رد الطبيب"),
+                        buildTextArea(hint: "", height: 80),
 
                         const SizedBox(height: 20),
 
                         // Choose File Button (اختيار ملف من الجهاز)
                         Center(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF27AE60)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 30,
-                                vertical: 12,
-                              ),
-                            ),
-                            onPressed: () {},
-                            child: const Text(
-                              "اختيار ملف من الجهاز",
-                              style: TextStyle(
-                                color: Color(0xFF27AE60),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          child: customOutlinedButton(
+                            onTap: () {},
+                            text: 'اختيار من ملف الجهاز',
+                            color: Color(0xFF27AE60),
                           ),
                         ),
 
@@ -138,25 +124,7 @@ class CaseDetailsDoctor extends StatelessWidget {
 
                         const SizedBox(height: 30),
 
-                        // Send Button (زر ارسال)
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF27AE60),
-                            minimumSize: const Size(double.infinity, 60),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          onPressed: () {},
-                          child: const Text(
-                            "ارسال",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                        customButton(text: 'ارسال', onTap: () {}),
                       ],
                     ),
                   ),
@@ -168,39 +136,4 @@ class CaseDetailsDoctor extends StatelessWidget {
       ),
     );
   }
-}
-
-// Widget مساعد للعناوين
-Widget _buildLabel(String text) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8.0, right: 5),
-    child: Align(
-      alignment: Alignment.centerRight,
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-    ),
-  );
-}
-
-// Widget مساعد لصناديق النصوص
-Widget _buildTextArea({required String hint, required double height}) {
-  return Container(
-    height: height,
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: TextField(
-      maxLines: null,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        border: InputBorder.none,
-      ),
-    ),
-  );
 }

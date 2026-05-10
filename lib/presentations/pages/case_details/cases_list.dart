@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/card.dart';
+import '../../widgets/card.dart';
 
 class CasesList extends StatelessWidget {
   const CasesList({super.key});
@@ -8,10 +8,9 @@ class CasesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6F8), // خلفية رمادية فاتحة جداً
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(18.0),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Column(
             children: [
               // Header السهم والعنوان
