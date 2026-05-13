@@ -32,9 +32,11 @@ Widget textFiledWithLable({
 Widget loginTextFiled({
   required String hint,
   bool isPassword = false,
+  TextEditingController? controller,
   bool isReadonly = false,
 }) {
   return TextField(
+    controller: controller,
     obscureText: isPassword,
     textAlign: TextAlign.right,
     // enabled: isReadonly,

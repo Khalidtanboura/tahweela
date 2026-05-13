@@ -72,17 +72,14 @@ Widget customPushButton({
 }
 
 Widget customReplacementButton({
-  required BuildContext context,
-  required String nextScreen,
   required String text,
+  required VoidCallback? onTap,
 }) {
   return SizedBox(
     width: double.infinity,
     height: 55,
     child: ElevatedButton(
-      onPressed: () {
-        Navigator.pushReplacementNamed(context, nextScreen);
-      },
+      onPressed: onTap,
       child: Text(
         text,
         style: TextStyle(

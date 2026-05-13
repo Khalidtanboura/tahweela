@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../widgets/buttons.dart';
@@ -16,6 +17,10 @@ class Admin extends StatelessWidget {
           child: Column(
             children: [
               appbarCard(
+                onTap1: () async {
+                  await FirebaseAuth.instance.signOut();
+                },
+                onTap2: () {},
                 icon1: Icons.person_outline,
                 icon2: Icons.notifications_none,
               ),

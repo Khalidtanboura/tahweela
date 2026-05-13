@@ -38,6 +38,15 @@ dependencies:
   flutter_localization: ^0.4.0
   flutter_localizations: # أضف هذا السطر
     sdk: flutter
+  firebase_core: ^4.7.0
+  cloud_firestore: ^6.3.0
+  firebase_storage: ^13.3.0
+  firebase_messaging: ^16.2.0
+  google_sign_in: ^7.2.0
+  awesome_dialog: ^3.3.0
+  flutter_riverpod: ^3.3.1
+  firebase_auth: ^6.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

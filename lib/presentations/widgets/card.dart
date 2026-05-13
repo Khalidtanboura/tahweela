@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 Widget appbarCard({
   required IconData icon1,
   required IconData icon2,
+  required VoidCallback onTap1,
+  required VoidCallback onTap2,
   Color? color,
 }) {
   return Container(
@@ -11,13 +13,22 @@ Widget appbarCard({
       color: color ?? Color(0xFF1B9E4F),
       borderRadius: BorderRadius.circular(20),
     ),
-    padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 33),
+    padding: const EdgeInsets.symmetric(horizontal: 5),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Icon(icon1, color: Colors.white, size: 28),
-        const SizedBox(width: 15),
-        Icon(icon2, color: Colors.white, size: 28),
+        IconButton(
+          onPressed: onTap1,
+          color: Colors.white,
+          iconSize: 32,
+          icon: Icon(icon1),
+        ),
+        IconButton(
+          icon: Icon(icon2),
+          color: Colors.white,
+          iconSize: 32,
+          onPressed: onTap2,
+        ),
       ],
     ),
   );

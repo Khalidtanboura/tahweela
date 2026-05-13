@@ -1,23 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Splash extends StatefulWidget {
+class Splash extends ConsumerStatefulWidget {
   const Splash({super.key});
 
   @override
-  State<Splash> createState() => _SplashState();
+  ConsumerState<Splash> createState() => _SplashState();
 }
 
-class _SplashState extends State<Splash> {
-  @override
-  void initState() {
-    Timer(
-      Duration(seconds: 3),
-      () => Navigator.pushReplacementNamed(context, 'login'),
-    );
-  }
-
+class _SplashState extends ConsumerState<Splash> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

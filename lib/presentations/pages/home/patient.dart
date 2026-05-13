@@ -1,13 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
 
-class Patient extends StatelessWidget {
+class Patient extends ConsumerWidget {
   const Patient({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Color(0xffF8FAFC),
       body: SafeArea(
@@ -16,6 +18,10 @@ class Patient extends StatelessWidget {
           child: Column(
             children: [
               appbarCard(
+                onTap1: () async {
+                  await FirebaseAuth.instance.signOut();
+                },
+                onTap2: () {},
                 icon1: Icons.person_outline,
                 icon2: Icons.notifications_none,
               ),
