@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints_doctor_patient.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
@@ -55,8 +57,29 @@ class Doctor extends StatelessWidget {
                     const SizedBox(height: 12),
                     cardButton(title: 'انشاء حالة جديدة', onTap: () {}),
                     const SizedBox(height: 12),
-
-                    cardButton(title: 'الشكاوي ', onTap: () {}),
+                    cardButton(
+                      title: 'تقديم شكوى',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const Complaints(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    cardButton(
+                      title: 'شكاواي',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ComplaintsDoctorCase(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

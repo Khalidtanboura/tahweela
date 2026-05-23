@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-//معرفة حالة المستخدم ودوره اذا كان طبيب او ادمن او مريض
+// معرفة حالة المستخدم ودوره اذا كان طبيب او ادمن او مريض
 final userRoleProvider = StreamProvider<String?>((ref) async* {
   await Future.delayed(const Duration(seconds: 3));
   final authStream = FirebaseAuth.instance.authStateChanges();
@@ -26,13 +26,14 @@ final userRoleProvider = StreamProvider<String?>((ref) async* {
         }
       } catch (e) {
         print("خطأ في جلب الصلاحيات: $e");
-        yield null; // في حالة الخطأ، نخرجه للوجين
+        yield null;
       }
     }
   }
 });
 
 final authProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
+
 final loginControllerProvider =
     StateNotifierProvider<LoginController, AsyncValue<void>>((ref) {
       return LoginController(ref.watch(authProvider));
@@ -44,22 +45,27 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
   LoginController(this._auth) : super(const AsyncValue.data(null));
 
   Future<void> login(String identifier, String password) async {
-    state = const AsyncValue.loading(); // تغيير الحالة إلى قيد التحميل
+    state = const AsyncValue.loading();
 
     try {
-      // String emailToLogin = identifier;
-      // if (!emailToLogin.contains('@')) {
-      //   emailToLogin = '$identifier@tahweela.com';
-      // }
+      // ✅ تصحيح: بناء الإيميل من رقم الهوية تلقائياً
+      String emailToLogin = identifier.trim();
+      if (!emailToLogin.contains('@')) {
+        emailToLogin = '$emailToLogin@tahweela.com';
+      }
+
       await _auth.signInWithEmailAndPassword(
-        email: identifier.trim(),
+        email: emailToLogin,
         password: password.trim(),
       );
       state = const AsyncValue.data(null);
     } on FirebaseAuthException catch (e) {
       print('==============================================${e.code}');
+
+      // ✅ تصحيح: إضافة رسائل خطأ واضحة لكل حالة
       String errorMessage = '';
       if (e.code == 'user-not-found') {
+        errorMessage = 'المستخدم غير موجود.'; // ✅ كانت فاضية قبل
       } else if (e.code == 'wrong-password') {
         errorMessage = 'كلمة المرور غير صحيحة.';
       } else if (e.code == 'network-request-failed') {
@@ -68,7 +74,10 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
         errorMessage = 'بيانات الدخول غير صحيحة (البريد أو كلمة المرور).';
       } else if (e.code == 'invalid-email') {
         errorMessage = 'صيغة البريد/رقم الهوية غير صحيحة.';
+      } else {
+        errorMessage = 'حدث خطأ غير متوقع. حاول مجدداً.';
       }
+
       state = AsyncValue.error(errorMessage, StackTrace.current);
     } catch (e) {
       state = AsyncValue.error('خطأ في الاتصال بالنظام', StackTrace.current);

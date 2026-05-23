@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints_view.dart';
+import 'package:tahweela/presentations/pages/usermanagment.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
@@ -51,7 +53,6 @@ class Admin extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -73,12 +74,31 @@ class Admin extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 48),
-                    cardButton(title: 'إدارة المستخدمين', onTap: () {}),
+                    cardButton(
+                      title: 'إدارة المستخدمين',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserManagment(),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 12),
                     cardButton(title: 'جميع الحالات', onTap: () {}),
                     const SizedBox(height: 12),
-
-                    cardButton(title: 'الشكاوي ', onTap: () {}),
+                    cardButton(
+                      title: 'الشكاوي',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ComplaintsView(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

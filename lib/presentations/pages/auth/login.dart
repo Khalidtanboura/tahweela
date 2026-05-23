@@ -4,7 +4,6 @@ import 'package:tahweela/core/theme.dart';
 import 'package:tahweela/presentations/widgets/textfield.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 
-
 class Login extends ConsumerStatefulWidget {
   const Login({super.key});
 
@@ -13,15 +12,15 @@ class Login extends ConsumerStatefulWidget {
 }
 
 class _LoginState extends ConsumerState<Login> {
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   @override
   void dispose() {
     _idController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
-
-  final TextEditingController _idController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -36,24 +35,25 @@ class _LoginState extends ConsumerState<Login> {
         );
       }
     });
+
     final loginStat = ref.watch(loginControllerProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             children: [
               Container(
-                // color: Color(0xffDCFCE7),
-                margin: EdgeInsets.only(top: 54),
+                margin: const EdgeInsets.only(top: 54),
                 width: 150,
                 height: 150,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Color(0xFFE1F9EB),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.medical_services_sharp,
                   size: 60,
                   color: AppColors.primaryGreen,
@@ -87,33 +87,29 @@ class _LoginState extends ConsumerState<Login> {
                 ),
                 child: Column(
                   children: [
-                    // حقل رقم الهوية
                     loginTextFiled(
                       hint: 'رقم الهوية الوطنية',
                       controller: _idController,
                     ),
                     const SizedBox(height: 15),
-                    // حقل كلمة المرور
                     loginTextFiled(
                       hint: 'كلمة المرور',
                       isPassword: true,
                       controller: _passwordController,
                     ),
-                    const SizedBox(height: 30),
-
-                    // زر تسجيل الدخول
                   ],
                 ),
               ),
               const SizedBox(height: 30),
+
+              // زر تسجيل الدخول
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   onPressed: loginStat.isLoading
-                      ? null // تعطيل الزر أثناء التحقق
+                      ? null
                       : () async {
-                          // التحقق البسيط من أن الحقول ليست فارغة قبل مراسلة فايربيس
                           if (_idController.text.isNotEmpty &&
                               _passwordController.text.isNotEmpty) {
                             ref
@@ -123,7 +119,6 @@ class _LoginState extends ConsumerState<Login> {
                                   _passwordController.text,
                                 );
                           } else {
-                            // رسالة تنبيه إذا كانت الحقول فارغة
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
@@ -133,7 +128,7 @@ class _LoginState extends ConsumerState<Login> {
                             );
                           }
                         },
-                  child: Text(
+                  child: const Text(
                     'تسجيل الدخول',
                     style: TextStyle(
                       fontSize: 18,
@@ -143,14 +138,17 @@ class _LoginState extends ConsumerState<Login> {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: 30),
-              ?loginStat.isLoading
-                  ? const CircularProgressIndicator(
-                      color: AppColors.primaryGreen,
-                    )
-                  : null,
-              // العنصر السفلي الباهت (كما في الصورة)
+              // ✅ تصحيح: إزالة الـ ? الغلط واستبداله بـ if صحيح
+              if (loginStat.isLoading)
+                const CircularProgressIndicator(
+                  color: AppColors.primaryGreen,
+                ),
+
+              const SizedBox(height: 20),
+
+              // الصندوق السفلي
               Container(
                 width: double.infinity,
                 height: 100,
@@ -162,7 +160,6 @@ class _LoginState extends ConsumerState<Login> {
                   child: loginStat.maybeWhen(
                     error: (error, _) => Text(
                       error.toString(),
-                      // هنا ستظهر رسالة "كلمة المرور غير صحيحة" مثلاً
                       style: const TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.bold,

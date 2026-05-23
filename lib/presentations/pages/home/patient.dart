@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints_patient_case.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
@@ -59,7 +61,28 @@ class Patient extends ConsumerWidget {
                       },
                     ),
                     const SizedBox(height: 12),
-                    cardButton(title: 'تقديم شكوى', onTap: () {}),
+                    cardButton(
+                      title: 'تقديم شكوى',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const Complaints()),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    cardButton(
+                      title: 'شكاواي',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const ComplaintsPatientCase()),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

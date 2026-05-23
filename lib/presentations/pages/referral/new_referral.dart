@@ -19,8 +19,8 @@ class _NewReferralState extends State<NewReferral> {
 
   @override
   Widget build(BuildContext context) {
-    List<PlatformFile> _selectedFiles = [];
-    Future<void> _pickFiles() async {
+    List<PlatformFile> selectedFiles = [];
+    Future<void> pickFiles() async {
       FilePickerResult? result = await FilePicker.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
@@ -29,7 +29,7 @@ class _NewReferralState extends State<NewReferral> {
 
       if (result != null) {
         setState(() {
-          _selectedFiles.addAll(result.files);
+          selectedFiles.addAll(result.files);
         });
       }
     }
@@ -105,7 +105,7 @@ class _NewReferralState extends State<NewReferral> {
                             children: [
                               // زر الاختيار
                               OutlinedButton(
-                                onPressed: _pickFiles,
+                                onPressed: pickFiles,
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(
                                     color: Color(0xFF23A455),
@@ -133,9 +133,9 @@ class _NewReferralState extends State<NewReferral> {
                               ListView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _selectedFiles.length,
+                                itemCount: selectedFiles.length,
                                 itemBuilder: (context, index) {
-                                  final file = _selectedFiles[index];
+                                  final file = selectedFiles[index];
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 10),
                                     padding: const EdgeInsets.all(12),

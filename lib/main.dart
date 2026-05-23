@@ -80,8 +80,10 @@ class MyApp extends ConsumerWidget {
         'newReferral': (context) => NewReferral(),
         'secondReferral': (context) => SecondReferral(),
         'complaintsView': (context) => ComplaintsView(),
-        'complaintState': (context) => ComplaintsState(),
-        'complaints': (context) => Complaints(),
+'complaintState': (context) => const ComplaintsState(
+  complaintId: '',
+  complaintData: {},
+),        'complaints': (context) => Complaints(),
         'casePatient': (context) => CasePatient(),
         'caseAdmin': (context) => CaseAdmin(),
         'caseReview': (context) => CaseReview(),

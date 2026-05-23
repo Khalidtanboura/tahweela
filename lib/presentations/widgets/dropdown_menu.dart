@@ -11,15 +11,15 @@ Widget customDropdown({
   return DropdownButtonFormField<String>(
     items: items.map((String value) {
       return DropdownMenuItem(
+        value: value,
         child: Text(
           value,
           textAlign: TextAlign.right,
           style: TextStyle(color: Colors.black),
         ),
-        value: value,
       );
     }).toList(),
-    value: selectedValue,
+    initialValue: selectedValue,
     onChanged: isEnabled ? onChanged : null,
     decoration: InputDecoration(
       hintText: hint,

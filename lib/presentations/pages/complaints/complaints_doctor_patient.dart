@@ -1,12 +1,46 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../../widgets/card.dart';
 
 class ComplaintsDoctorCase extends StatelessWidget {
   const ComplaintsDoctorCase({super.key});
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'accepted':
+        return const Color(0xFF27AE60);
+      case 'rejected':
+        return Colors.red;
+      default:
+        return const Color(0xFFFFEAA7);
+    }
+  }
+
+  Color _getStatusTextColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.white;
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'accepted':
+        return 'مقبولة';
+      case 'rejected':
+        return 'مرفوضة';
+      default:
+        return 'قيد المراجعة';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
@@ -16,140 +50,172 @@ class ComplaintsDoctorCase extends StatelessWidget {
             children: [
               secoundAppbarCard(
                 icon1: Icons.reply,
-                title: 'الاشعارات',
+                title: 'شكاواي',
                 context: context,
               ),
-
+              const SizedBox(height: 20),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    // White Info Card (البطاقة البيضاء الخاصة ببيانات الدكتور)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: const Color(0xFFE3F2FD)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Center(
-                            child: Text(
-                              "DR-2026-00011",
-                              style: TextStyle(
-                                color: Color(0xFF2D7FF9), // اللون الأزرق للرقم
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            "الدكتور سعيد",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('complaints')
+                      .where('userId', isEqualTo: user?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF16A34A),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'لا توجد شكاوى',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      );
+                    }
+
+                    final complaints = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      itemCount: complaints.length,
+                      itemBuilder: (context, index) {
+                        final data =
+                            complaints[index].data() as Map<String, dynamic>;
+                        final status = data['status'] ?? 'pending';
+                        final hasReply = data['replyText'] != null &&
+                            data['replyText'].toString().isNotEmpty;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          child: Column(
                             children: [
-                              const Text(
-                                " أورام",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
+                              // البطاقة البيضاء
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                      color: const Color(0xFFE3F2FD)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.02),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Center(
+                                      child: Text(
+                                        data['userName'] ?? 'مجهول',
+                                        style: const TextStyle(
+                                          color: Color(0xFF2D7FF9),
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      data['text'] ?? '',
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.right,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(status),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            _getStatusLabel(status),
+                                            style: TextStyle(
+                                              color:
+                                                  _getStatusTextColor(status),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 25,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF27AE60),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  "مقبولة",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+
+                              // نص الرد (يظهر فقط لو في رد)
+                              if (hasReply) ...[
+                                const SizedBox(height: 15),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: const Text(
+                                      'نص الرد',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(25),
+                                    border: Border.all(
+                                        color: Colors.blue.shade50),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            Colors.black.withOpacity(0.02),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    data['replyText'] ?? '',
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          const Text(
-                            "01/01/2050",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Status Badge (مقبولة)
-                          // Align(
-                          //   alignment: Alignment
-                          //       .centerLeft, // في هذه الصورة التسمية على اليسار
-                          //   child:
-                          // ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // Response Section Title (نص الرد)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          "نص الرد",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Response Box (صندوق الرد الرمادي)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(25),
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: Colors.blue.shade50),
-                      ),
-                      child: const Text(
-                        "تم حل المشكلة النظام ...\nتم التواصل مع الطبيب مرفق الحالة التي بها مشكلة ...",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          height: 1.6,
-                        ),
-                      ),
-                    ),
-                  ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
