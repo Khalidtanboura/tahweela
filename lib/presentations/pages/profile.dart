@@ -7,35 +7,40 @@ class Profile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // بيانات وهمية مؤقتة، بعدين نجيبها من Firebase
+    const String name = 'محمد أحمد';
+    const String nationalId = '123456789';
+    const String phone = '0590000000';
+    const String role = 'مريض';
+
     return Scaffold(
-      backgroundColor: Color(0xffF8FAFC),
+      backgroundColor: const Color(0xffF8FAFC),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           child: Column(
             children: [
-              // Header Section
+              // Header
               secoundAppbarCard(
                 icon1: Icons.reply,
-                title: 'الاشعارات',
+                title: 'الملف الشخصي',
                 context: context,
               ),
-              const SizedBox(height: 40),
 
-              // Profile Image / Initial (الدائرة الخضراء الفاتحة)
+              const SizedBox(height: 35),
+
+              // Profile Avatar
               Container(
                 width: 120,
                 height: 120,
                 decoration: const BoxDecoration(
-                  color: Color(
-                    0xFFE1F9E9,
-                  ), // اللون الأخضر الفاتح جداً من الصورة
+                  color: Color(0xFFE1F9E9),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'م',
-                    style: TextStyle(
+                    name[0],
+                    style: const TextStyle(
                       fontSize: 40,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF27AE60),
@@ -44,33 +49,70 @@ class Profile extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
-              // Info Fields (رقم الهوية ورقم الجوال)
+              const Text(
+                name,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              const Text(
+                role,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 35),
+
+              // Profile Info
               Column(
                 children: [
-                  _buildProfileInfoField("رقم الهوية"),
-                  const SizedBox(height: 20),
-                  _buildProfileInfoField("رقم الجوال"),
+                  _buildProfileInfoField(
+                    label: 'رقم الهوية',
+                    value: nationalId,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildProfileInfoField(
+                    label: 'رقم الجوال',
+                    value: phone,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildProfileInfoField(
+                    label: 'نوع الحساب',
+                    value: role,
+                  ),
                 ],
               ),
 
               const Spacer(),
 
-              // Logout Button (زر تسجيل الخروج)
+              // Logout Button
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 60),
+                  minimumSize: const Size(double.infinity, 58),
                   side: const BorderSide(color: Colors.red, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
                 onPressed: () {
-                  // منطق تسجيل الخروج
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('سيتم ربط تسجيل الخروج لاحقًا'),
+                    ),
+                  );
                 },
                 child: const Text(
-                  "تسجيل الخروج",
+                  'تسجيل الخروج',
                   style: TextStyle(
                     color: Colors.red,
                     fontSize: 18,
@@ -85,14 +127,16 @@ class Profile extends StatelessWidget {
     );
   }
 
-  // Widget مساعد لبناء حقول المعلومات البيضاء
-  Widget _buildProfileInfoField(String label) {
+  Widget _buildProfileInfoField({
+    required String label,
+    required String value,
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.blue.shade50),
         boxShadow: [
           BoxShadow(
@@ -102,16 +146,27 @@ class Profile extends StatelessWidget {
           ),
         ],
       ),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
+      child: Row(
+        textDirection: TextDirection.rtl,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.black54,
+            ),
           ),
-        ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }

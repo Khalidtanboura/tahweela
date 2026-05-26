@@ -1,10 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
-
+import '../notification.dart';
+import '../profile.dart';
+import '../case_details/cases_list.dart';
 class Patient extends ConsumerWidget {
   const Patient({super.key});
 
@@ -17,14 +19,56 @@ class Patient extends ConsumerWidget {
           padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Column(
             children: [
-              appbarCard(
-                onTap1: () async {
-                  await FirebaseAuth.instance.signOut();
-                },
-                onTap2: () {},
-                icon1: Icons.person_outline,
-                icon2: Icons.notifications_none,
+              
+
+              Container(
+  height: 86,
+  width: double.infinity,
+  decoration: BoxDecoration(
+    color: const Color(0xFF1B9E4F),
+    borderRadius: BorderRadius.circular(20),
+  ),
+  padding: const EdgeInsets.symmetric(horizontal: 18),
+  child: Align(
+    alignment: Alignment.centerLeft,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_none,
+            color: Colors.white,
+            size: 32,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MyNotification(),
               ),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(
+            Icons.person_outline,
+            color: Colors.white,
+            size: 32,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const Profile(),
+              ),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+),
               Expanded(
                 child: ListView(
                   children: [
