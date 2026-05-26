@@ -5,6 +5,7 @@ Widget textFiledWithLable({
   required String lable,
   bool isPassword = false,
   bool isReadonly = false,
+  TextEditingController? controller, // ← أضفناها هون
 }) {
   return Column(
     children: [
@@ -24,6 +25,7 @@ Widget textFiledWithLable({
         hint: hint,
         isReadonly: isReadonly,
         isPassword: isPassword,
+        controller: controller, // ← ومررناها هون
       ),
     ],
   );
@@ -39,13 +41,11 @@ Widget loginTextFiled({
     controller: controller,
     obscureText: isPassword,
     textAlign: TextAlign.right,
-    // enabled: isReadonly,
     readOnly: isReadonly,
     decoration: InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
       filled: true,
-      // label: Text('data'),
       fillColor: isReadonly ? Color(0xffE7E5E5) : Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       enabledBorder: OutlineInputBorder(

@@ -57,7 +57,6 @@ Widget CaseCard({
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // زر الحالة (Tag)
             Text(
               id,
               style: const TextStyle(
@@ -81,12 +80,9 @@ Widget CaseCard({
                 ),
               ),
             ),
-
-            // رقم الحالة
           ],
         ),
         const SizedBox(height: 10),
-        // اسم المريض (إذا وجد)
         if (patientName.isNotEmpty)
           Text(
             patientName,
@@ -96,7 +92,6 @@ Widget CaseCard({
               color: Colors.black87,
             ),
           ),
-        // التخصص
         Text(
           specialty,
           style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
@@ -118,17 +113,11 @@ Widget secoundAppbarCard({
     padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 20),
     decoration: BoxDecoration(
       color: Color(0xFF16A34A),
-      // gradient: const LinearGradient(
-      //   begin: Alignment.centerRight,
-      //   end: Alignment.centerLeft,
-      //   colors: [Color(0xFF16A34A), Color(0xFF0F7A38)],
-      // ),
       borderRadius: BorderRadius.circular(25),
     ),
     child: Stack(
       alignment: Alignment.center,
       children: [
-        // زر الرجوع
         Positioned(
           left: 0,
           child: IconButton(
@@ -136,7 +125,6 @@ Widget secoundAppbarCard({
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        // العنوان
         Text(
           title,
           style: TextStyle(
@@ -201,7 +189,6 @@ Widget appTitleCard({required String title, Color? color1, Color? color2}) {
 Widget CardQustion({required String title}) {
   return Container(
     margin: EdgeInsets.only(bottom: 7),
-
     padding: const EdgeInsets.all(15),
     decoration: BoxDecoration(
       color: Colors.white,
@@ -214,7 +201,6 @@ Widget CardQustion({required String title}) {
         const SizedBox(height: 15),
         Row(
           children: [
-            // زر نعم الأخضر
             Expanded(
               child: Container(
                 height: 45,
@@ -235,7 +221,6 @@ Widget CardQustion({required String title}) {
               ),
             ),
             const SizedBox(width: 10),
-            // زر لا الأحمر
             Expanded(
               child: Container(
                 height: 45,
@@ -299,7 +284,6 @@ Widget myContentBox(String text, {Color textColor = Colors.black54}) {
   return Container(
     width: double.infinity,
     padding: const EdgeInsets.all(20),
-    height: 120,
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(25),
@@ -308,7 +292,31 @@ Widget myContentBox(String text, {Color textColor = Colors.black54}) {
     child: Text(
       text,
       style: TextStyle(color: textColor, fontSize: 16, height: 1.5),
-      textAlign: TextAlign.center,
+      textAlign: TextAlign.right,
+    ),
+  );
+}
+
+Widget myOutlineButton(String text, Color color, {VoidCallback? onTap}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: color, width: 2),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
     ),
   );
 }
