@@ -1,86 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tahweela/data/models/user_model.dart'
+    hide UserModel; // ← استيراد حزمي نظيف وموحد
+import 'package:tahweela/data/repositories/auth_repository.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:tahweela/data/models/user_model.dart';
 
-// معرفة حالة المستخدم ودوره اذا كان طبيب او ادمن او مريض
-final userRoleProvider = StreamProvider<String?>((ref) async* {
-  await Future.delayed(const Duration(seconds: 3));
-  final authStream = FirebaseAuth.instance.authStateChanges();
-
-  await for (final user in authStream) {
-    if (user == null) {
-      yield null;
-    } else {
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        if (doc.exists &&
-            doc.data() != null &&
-            doc.data()!.containsKey('role')) {
-          yield doc.data()!['role'] as String;
-        } else {
-          yield 'patient';
-        }
-      } catch (e) {
-        print("خطأ في جلب الصلاحيات: $e");
-        yield null;
-      }
-    }
-  }
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository();
 });
 
-final authProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
-
-final loginControllerProvider =
-    StateNotifierProvider<LoginController, AsyncValue<void>>((ref) {
-      return LoginController(ref.watch(authProvider));
-    });
-
-class LoginController extends StateNotifier<AsyncValue<void>> {
-  final FirebaseAuth _auth;
-
-  LoginController(this._auth) : super(const AsyncValue.data(null));
-
-  Future<void> login(String identifier, String password) async {
-    state = const AsyncValue.loading();
-
-    try {
-      // ✅ تصحيح: بناء الإيميل من رقم الهوية تلقائياً
-      String emailToLogin = identifier.trim();
-      if (!emailToLogin.contains('@')) {
-        emailToLogin = '$emailToLogin@tahweela.com';
-      }
-
-      await _auth.signInWithEmailAndPassword(
-        email: emailToLogin,
-        password: password.trim(),
-      );
-      state = const AsyncValue.data(null);
-    } on FirebaseAuthException catch (e) {
-      print('==============================================${e.code}');
-
-      // ✅ تصحيح: إضافة رسائل خطأ واضحة لكل حالة
-      String errorMessage = '';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'المستخدم غير موجود.'; // ✅ كانت فاضية قبل
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'كلمة المرور غير صحيحة.';
-      } else if (e.code == 'network-request-failed') {
-        errorMessage = 'خطأ في الشبكة';
-      } else if (e.code == 'invalid-credential') {
-        errorMessage = 'بيانات الدخول غير صحيحة (البريد أو كلمة المرور).';
-      } else if (e.code == 'invalid-email') {
-        errorMessage = 'صيغة البريد/رقم الهوية غير صحيحة.';
-      } else {
-        errorMessage = 'حدث خطأ غير متوقع. حاول مجدداً.';
-      }
-
-      state = AsyncValue.error(errorMessage, StackTrace.current);
-    } catch (e) {
-      state = AsyncValue.error('خطأ في الاتصال بالنظام', StackTrace.current);
-    }
-  }
-}
+// هذا المزود الآن يعيد Stream<UserModel?> بدلاً من الخريطة الخام
+final userDataProvider = StreamProvider<UserModel?>((ref) {
+  return FirebaseAuth.instance.authStateChanges().switchMap((user) {
+    if (user == null) return Stream.value(null);
+    // عند تغير حالة المستخدم، نعود لنقرأ بياناته من Firestore
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .snapshots()
+        .map((doc) => UserModel.fromFirestore(doc));
+  });
+});

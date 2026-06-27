@@ -128,8 +128,10 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('complaints')
-                      .where('userRole',
-                          isEqualTo: _showPatients ? 'patient' : 'doctor')
+                      .where(
+                        'userRole',
+                        isEqualTo: _showPatients ? 'patient' : 'doctor',
+                      )
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -197,11 +199,12 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                                     // حالة الشكوى
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 6),
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: _getStatusColor(status),
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         _getStatusLabel(status),

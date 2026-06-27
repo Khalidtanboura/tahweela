@@ -1,126 +1,187 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/providers/auth_provider.dart';
 
 import '../widgets/card.dart';
 
-class Profile extends StatelessWidget {
+class Profile extends ConsumerWidget {
   const Profile({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // بيانات وهمية مؤقتة، بعدين نجيبها من Firebase
-    const String name = 'محمد أحمد';
-    const String nationalId = '123456789';
-    const String phone = '0590000000';
-    const String role = 'مريض';
+  Widget build(BuildContext context, WidgetRef ref) {
+    // مراقبة مزود البيانات الشامل
+    final authState = ref.watch(userDataProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Column(
-            children: [
-              // Header
-              secoundAppbarCard(
-                icon1: Icons.reply,
-                title: 'الملف الشخصي',
-                context: context,
-              ),
+        child: authState.when(
+          // حالة النجاح في جلب البيانات من الـ Firestore
+          data: (userData) {
+            // ✅ 1. حماية الشاشة: إذا سجل المستخدم خروجاً وأصبحت البيانات null، نخرج بسلام دون انهيار
+            if (userData == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF27AE60)),
+              );
+            }
 
-              const SizedBox(height: 35),
+            final String name = userData.name ?? 'مستخدم غير معروف';
+            final String nationalId = userData.nationalID ?? 'غير متوفر';
+            final String phone = userData.phone ?? 'غير متوفر';
+            final String dbRole = userData.role ?? 'patient';
 
-              // Profile Avatar
-              Container(
-                width: 120,
-                height: 120,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE1F9E9),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    name[0],
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF27AE60),
+            // 3. تحويل نوع الحساب من الإنجليزية للعربية للعرض
+            String roleText = 'مريض';
+            if (dbRole == 'admin') {
+              roleText = 'مدير النظام';
+            } else if (dbRole == 'doctor') {
+              roleText = 'طبيب';
+            }
+
+            // 3. أخذ أول حرف من الاسم بأمان ليكون الـ Avatar
+            final String avatarChar = name.trim().isNotEmpty
+                ? name.trim()[0]
+                : 'U';
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Column(
+                children: [
+                  // Header
+                  secoundAppbarCard(
+                    icon1: Icons.reply,
+                    title: 'الملف الشخصي',
+                    context: context,
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  // Profile Avatar
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE1F9E9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        avatarChar,
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF27AE60),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              const Text(
-                name,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              const Text(
-                role,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 35),
-
-              // Profile Info
-              Column(
-                children: [
-                  _buildProfileInfoField(
-                    label: 'رقم الهوية',
-                    value: nationalId,
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildProfileInfoField(
-                    label: 'رقم الجوال',
-                    value: phone,
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    roleText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildProfileInfoField(
-                    label: 'نوع الحساب',
-                    value: role,
+
+                  const SizedBox(height: 35),
+
+                  // Profile Info Fields
+                  Column(
+                    children: [
+                      _buildProfileInfoField(
+                        label: 'رقم الهوية',
+                        value: nationalId,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildProfileInfoField(label: 'رقم الجوال', value: phone),
+                      const SizedBox(height: 16),
+                      _buildProfileInfoField(
+                        label: 'نوع الحساب',
+                        value: roleText,
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // Logout Button
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 58),
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () async {
+                      try {
+                        // 1. نطلب من الفايربيز تسجيل الخروج أولاً وننتظر النتيجة
+                        await FirebaseAuth.instance.signOut();
+
+                        // 2. إذا نجحت العملية (ولم يحدث استثناء)، ننتقل فوراً لصفحة الـ login ونفرغ الذاكرة
+                        if (context.mounted) {
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/',
+                            (Route<dynamic> route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        // 3. إذا فشل تسجيل الخروج لأي سبب (مثل انقطاع الإنترنت)، نلغي الانتقال وننبه المستخدم
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'فشل تسجيل الخروج، يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى',
+                                textAlign: TextAlign.right,
+                              ),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text(
+                      'تسجيل الخروج',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
+            );
+          },
 
-              const Spacer(),
+          // شاشة الانتظار المريحة للعين أثناء تحميل البيانات
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF27AE60)),
+          ),
 
-              // Logout Button
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 58),
-                  side: const BorderSide(color: Colors.red, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('سيتم ربط تسجيل الخروج لاحقًا'),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'تسجيل الخروج',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+          // في حال حدوث خطأ غير متوقع في الاتصال بالإنترنت
+          error: (error, stack) => const Center(
+            child: Text(
+              'حدث خطأ أثناء تحميل بيانات الملف الشخصي',
+              style: TextStyle(color: Colors.red, fontSize: 16),
+            ),
           ),
         ),
       ),

@@ -64,7 +64,8 @@ class _ComplaintsState extends State<Complaints> {
           context: context,
           builder: (dialogContext) => AlertDialog(
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(16),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -74,14 +75,12 @@ class _ComplaintsState extends State<Complaints> {
                     color: Color(0xFF16A34A),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check,
-                      color: Colors.white, size: 32),
+                  child: const Icon(Icons.check, color: Colors.white, size: 32),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'تم إرسال الشكوى بنجاح',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -154,8 +153,7 @@ class _ComplaintsState extends State<Complaints> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
-                            border:
-                                Border.all(color: Colors.blue.shade100),
+                            border: Border.all(color: Colors.blue.shade100),
                           ),
                           child: TextField(
                             controller: _complaintController,

@@ -1,15 +1,29 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/presentations/pages/complaints/user_complaints_page.dart';
+import 'package:tahweela/presentations/widgets/notificationBell.dart';
+import 'package:tahweela/providers/auth_provider.dart';
+import 'package:tahweela/providers/complanits_provider.dart';
+import 'package:tahweela/providers/notifications_provider.dart';
 import '../case_details/review.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
 import '../notification.dart';
 import '../profile.dart';
 
-class Doctor extends StatelessWidget {
+class Doctor extends ConsumerWidget {
   const Doctor({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userName = ref
+        .watch(userDataProvider)
+        .when(
+          data: (user) => titleCard(title: 'مرحباً، ${user!.name ?? 'دكتور'}'),
+          loading: () => titleCard(title: 'مرحبا ًدكتور'),
+          error: (_, __) => titleCard(title: 'مرحبا ًدكتور'),
+        );
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       body: SafeArea(
@@ -30,21 +44,41 @@ class Doctor extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyNotification(),
-                            ),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final notificationsAsync = ref.watch(
+                            userNotificationsProvider,
+                          );
+                          return notificationsAsync.when(
+                            data: (list) {
+                              final unreadCount = list
+                                  .where((n) => !n.isRead)
+                                  .length;
+                              return buildNotificationBell(
+                                context,
+                                unreadCount,
+                              );
+                            },
+                            loading: () => const SizedBox(),
+                            error: (_, __) => const SizedBox(),
                           );
                         },
                       ),
+                      // IconButton(
+                      //   icon: const Icon(
+                      //     Icons.notifications_none,
+                      //     color: Colors.white,
+                      //     size: 32,
+                      //   ),
+                      //   onPressed: () {
+                      //     Navigator.push(
+                      //       context,
+                      //       MaterialPageRoute(
+                      //         builder: (context) => const NotificationPage(),
+                      //       ),
+                      //     );
+                      //   },
+                      // ),
                       const SizedBox(width: 8),
                       IconButton(
                         icon: const Icon(
@@ -70,8 +104,7 @@ class Doctor extends StatelessWidget {
                 child: ListView(
                   children: [
                     const SizedBox(height: 20),
-
-                   titleCard(title: 'تجربة الطبيب'),
+                    userName,
 
                     const SizedBox(height: 28),
 
@@ -98,10 +131,7 @@ class Doctor extends StatelessWidget {
 
                     const SizedBox(height: 48),
 
-                    cardButton(
-                      title: 'مراجعة الحالات',
-                      onTap: () {},
-                    ),
+                    cardButton(title: 'مراجعة الحالات', onTap: () {}),
 
                     const SizedBox(height: 12),
 
@@ -121,7 +151,14 @@ class Doctor extends StatelessWidget {
 
                     cardButton(
                       title: 'الشكاوي ',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserComplaintsPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
