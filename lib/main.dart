@@ -54,10 +54,14 @@ class MyApp extends ConsumerWidget {
       routes: {
         '/home': (context) => const AuthGate(),
         'home': (context) => const AuthGate(),
+        '/login': (context) => const Login(),
         'splash': (context) => const Splash(),
         'login': (context) => const Login(),
+        '/patient': (context) => const Patient(),
         'patient': (context) => const Patient(),
+        '/doctor': (context) => const Doctor(),
         'doctor': (context) => const Doctor(),
+        '/admin': (context) => const Admin(),
         'admin': (context) => const Admin(),
         'usermanagment': (context) => UserManagment(),
         'casesList': (context) => CasesList(),
@@ -94,7 +98,7 @@ class AuthGate extends ConsumerWidget {
           return const Login();
         }
 
-        switch (userData.role) {
+        switch (userData.role.trim().toLowerCase()) {
           case 'admin':
             return const Admin();
           case 'doctor':

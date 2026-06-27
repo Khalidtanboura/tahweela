@@ -5,7 +5,6 @@ import 'package:tahweela/firebase_options.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<UserModel?> streamUserData(String uid) {

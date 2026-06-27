@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tahweela/data/models/complaint_model.dart';
 import 'notifications_repository.dart'; // استيراد ملف الإشعارات
 
 class ComplaintsRepository {
@@ -18,15 +19,14 @@ class ComplaintsRepository {
     required String complaintText,
   }) async {
     // أولاً: حفظ الشكوى في الفايربيز بمجموعة complaints
-    await _firestore.collection('complaints').add({
-      'userId': userId,
-      'userName': userName,
-      'userRole': userRole,
-      'complaintText': complaintText,
-      'status': 'pending',
-      'replyText': '',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final complaint = ComplaintModel(
+      userId: userId,
+      userName: userName,
+      userRole: userRole,
+      text: complaintText,
+    );
+
+    await _firestore.collection('complaints').add(complaint.toMap());
 
     // ثانياً: إرسال الإشعار التلقائي للمدير فوراً عند نجاح الحفظ
     await _notificationsRepo.sendNotificationToAdmin(

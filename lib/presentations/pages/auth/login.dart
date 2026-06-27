@@ -137,6 +137,7 @@ class _LoginState extends ConsumerState<Login> {
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () {
+                      if (loginStat.isLoading) return;
                       if (_formKey.currentState!.validate()) {
                         // استدعاء دالة تسجيل الدخول المعتمدة على رقم الهوية الوطنية
                         ref

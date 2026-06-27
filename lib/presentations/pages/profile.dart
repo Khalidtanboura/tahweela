@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tahweela/providers/auth_provider.dart';
+import 'package:tahweela/providers/login_provider.dart';
 
 import '../widgets/card.dart';
 
@@ -26,10 +26,10 @@ class Profile extends ConsumerWidget {
               );
             }
 
-            final String name = userData.name ?? 'مستخدم غير معروف';
-            final String nationalId = userData.nationalID ?? 'غير متوفر';
-            final String phone = userData.phone ?? 'غير متوفر';
-            final String dbRole = userData.role ?? 'patient';
+            final String name = userData.name;
+            final String nationalId = userData.nationalID;
+            final String phone = userData.phone;
+            final String dbRole = userData.role;
 
             // 3. تحويل نوع الحساب من الإنجليزية للعربية للعرض
             String roleText = 'مريض';
@@ -132,7 +132,8 @@ class Profile extends ConsumerWidget {
                     onPressed: () async {
                       try {
                         // 1. نطلب من الفايربيز تسجيل الخروج أولاً وننتظر النتيجة
-                        await FirebaseAuth.instance.signOut();
+                        await ref.read(firebaseAuthProvider).signOut();
+                        ref.read(loginControllerProvider.notifier).reset();
 
                         // 2. إذا نجحت العملية (ولم يحدث استثناء)، ننتقل فوراً لصفحة الـ login ونفرغ الذاكرة
                         if (context.mounted) {
