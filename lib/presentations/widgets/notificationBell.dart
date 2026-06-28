@@ -7,7 +7,11 @@ Widget buildNotificationBell(BuildContext context, int unreadCount) {
     clipBehavior: Clip.none,
     children: [
       IconButton(
-        icon: const Icon(Icons.notifications_none_rounded, size: 28),
+        icon: const Icon(
+          Icons.notifications_none_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
         onPressed: () {
           // الانتقال الموحد لشاشة الإشعارات الذكية التي برمجناها سابقاً
           Navigator.push(

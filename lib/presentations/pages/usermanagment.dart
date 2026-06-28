@@ -153,7 +153,9 @@ class _UserManagmentState extends State<UserManagment> {
                               Container(
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.only(
-                                    top: 10, bottom: 5),
+                                  top: 10,
+                                  bottom: 5,
+                                ),
                                 child: const Text(
                                   'الدور',
                                   style: TextStyle(
@@ -181,7 +183,9 @@ class _UserManagmentState extends State<UserManagment> {
                                     Container(
                                       alignment: Alignment.centerRight,
                                       padding: const EdgeInsets.only(
-                                          top: 10, bottom: 5),
+                                        top: 10,
+                                        bottom: 5,
+                                      ),
                                       child: const Text(
                                         'تخصص الطبيب',
                                         style: TextStyle(
@@ -228,7 +232,8 @@ class _UserManagmentState extends State<UserManagment> {
                                       child: const Text(
                                         'إلغاء',
                                         style: TextStyle(
-                                            color: Color(0xFF1B9E4F)),
+                                          color: Color(0xFF1B9E4F),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -253,11 +258,12 @@ class _UserManagmentState extends State<UserManagment> {
                                                       .isEmpty ||
                                                   _selectedValue == null) {
                                                 ScaffoldMessenger.of(
-                                                        dialogContext)
-                                                    .showSnackBar(
+                                                  dialogContext,
+                                                ).showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
-                                                        'يرجى تعبئة جميع الحقول'),
+                                                      'يرجى تعبئة جميع الحقول',
+                                                    ),
                                                     backgroundColor: Colors.red,
                                                   ),
                                                 );
@@ -265,62 +271,72 @@ class _UserManagmentState extends State<UserManagment> {
                                               }
 
                                               setStateDialog(
-                                                  () => _isLoading = true);
+                                                () => _isLoading = true,
+                                              );
 
                                               try {
                                                 final email =
                                                     '${_idController.text.trim()}@tahweela.com';
-                                                final password =
-                                                    _idController.text.trim();
+                                                final password = _idController
+                                                    .text
+                                                    .trim();
 
                                                 final userCredential =
                                                     await FirebaseAuth.instance
                                                         .createUserWithEmailAndPassword(
-                                                  email: email,
-                                                  password: password,
-                                                );
+                                                          email: email,
+                                                          password: password,
+                                                        );
 
                                                 await FirebaseFirestore.instance
                                                     .collection('users')
-                                                    .doc(userCredential
-                                                        .user!.uid)
+                                                    .doc(
+                                                      userCredential.user!.uid,
+                                                    )
                                                     .set({
-                                                  'uid': userCredential
-                                                      .user!.uid,
-                                                  'nationalId': _idController
-                                                      .text
-                                                      .trim(),
-                                                  'name': _nameController.text
-                                                      .trim(),
-                                                  'phone': _phoneController
-                                                      .text
-                                                      .trim(),
-                                                  'role': _selectedValue ==
-                                                          'طبيب'
-                                                      ? 'doctor'
-                                                      : _selectedValue ==
-                                                              'مريض'
+                                                      'uid': userCredential
+                                                          .user!
+                                                          .uid,
+                                                      'nationalId':
+                                                          _idController.text
+                                                              .trim(),
+                                                      'name': _nameController
+                                                          .text
+                                                          .trim(),
+                                                      'phone': _phoneController
+                                                          .text
+                                                          .trim(),
+                                                      'role':
+                                                          _selectedValue ==
+                                                              'طبيب'
+                                                          ? 'doctor'
+                                                          : _selectedValue ==
+                                                                'مريض'
                                                           ? 'patient'
                                                           : 'admin',
-                                                  if (_selectedValue == 'طبيب')
-                                                    'specialty':
-                                                        _selectedValue2,
-                                                  'createdAt': FieldValue
-                                                      .serverTimestamp(),
-                                                });
+                                                      if (_selectedValue ==
+                                                          'طبيب')
+                                                        'specialty':
+                                                            _selectedValue2,
+                                                      'createdAt':
+                                                          FieldValue.serverTimestamp(),
+                                                      'email':
+                                                          '${_idController.text.trim()}@tahweela.com',
+                                                    });
 
                                                 setStateDialog(
-                                                    () => _isLoading = false);
+                                                  () => _isLoading = false,
+                                                );
                                                 Navigator.pop(dialogContext);
 
                                                 showDialog(
                                                   context: context,
                                                   builder: (_) => AlertDialog(
-                                                    shape:
-                                                        RoundedRectangleBorder(
+                                                    shape: RoundedRectangleBorder(
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                              16),
+                                                            16,
+                                                          ),
                                                     ),
                                                     content: Column(
                                                       mainAxisSize:
@@ -328,15 +344,17 @@ class _UserManagmentState extends State<UserManagment> {
                                                       children: [
                                                         Container(
                                                           padding:
-                                                              const EdgeInsets
-                                                                  .all(16),
+                                                              const EdgeInsets.all(
+                                                                16,
+                                                              ),
                                                           decoration:
                                                               const BoxDecoration(
-                                                            color: Color(
-                                                                0xFF16A34A),
-                                                            shape:
-                                                                BoxShape.circle,
-                                                          ),
+                                                                color: Color(
+                                                                  0xFF16A34A,
+                                                                ),
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                              ),
                                                           child: const Icon(
                                                             Icons.check,
                                                             color: Colors.white,
@@ -344,7 +362,8 @@ class _UserManagmentState extends State<UserManagment> {
                                                           ),
                                                         ),
                                                         const SizedBox(
-                                                            height: 16),
+                                                          height: 16,
+                                                        ),
                                                         const Text(
                                                           'تمت إضافة المستخدم بنجاح',
                                                           style: TextStyle(
@@ -356,14 +375,15 @@ class _UserManagmentState extends State<UserManagment> {
                                                               TextAlign.center,
                                                         ),
                                                         const SizedBox(
-                                                            height: 8),
+                                                          height: 8,
+                                                        ),
                                                         const Text(
                                                           'يمكنه تسجيل الدخول باسم المستخدم وكلمة المرور',
                                                           textAlign:
                                                               TextAlign.center,
                                                           style: TextStyle(
-                                                              color:
-                                                                  Colors.grey),
+                                                            color: Colors.grey,
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
@@ -371,19 +391,24 @@ class _UserManagmentState extends State<UserManagment> {
                                                       TextButton(
                                                         onPressed: () =>
                                                             Navigator.pop(
-                                                                context),
+                                                              context,
+                                                            ),
                                                         child: const Text(
-                                                            'حسناً'),
+                                                          'حسناً',
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
                                                 );
-                                              } on FirebaseAuthException catch (e) {
+                                              } on FirebaseAuthException catch (
+                                                e
+                                              ) {
                                                 setStateDialog(
-                                                    () => _isLoading = false);
+                                                  () => _isLoading = false,
+                                                );
                                                 ScaffoldMessenger.of(
-                                                        dialogContext)
-                                                    .showSnackBar(
+                                                  dialogContext,
+                                                ).showSnackBar(
                                                   SnackBar(
                                                     content: Text(
                                                       e.code ==
@@ -396,13 +421,15 @@ class _UserManagmentState extends State<UserManagment> {
                                                 );
                                               } catch (e) {
                                                 setStateDialog(
-                                                    () => _isLoading = false);
+                                                  () => _isLoading = false,
+                                                );
                                                 ScaffoldMessenger.of(
-                                                        dialogContext)
-                                                    .showSnackBar(
+                                                  dialogContext,
+                                                ).showSnackBar(
                                                   const SnackBar(
                                                     content: Text(
-                                                        'حدث خطأ غير متوقع'),
+                                                      'حدث خطأ غير متوقع',
+                                                    ),
                                                     backgroundColor: Colors.red,
                                                   ),
                                                 );

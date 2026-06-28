@@ -39,6 +39,7 @@ class AuthRepository {
       final updatedUser = UserModel(
         uid: userCredential.user!.uid,
         nationalID: user.nationalID,
+        email: user.email,
         name: user.name,
         phone: user.phone,
         role: user.role,

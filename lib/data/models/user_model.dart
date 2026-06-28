@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
   final String uid;
+  final String email;
   final String nationalID;
   final String name;
   final String phone;
@@ -11,6 +12,7 @@ class UserModel {
 
   UserModel({
     required this.uid,
+    required this.email,
     required this.nationalID,
     required this.name,
     required this.phone,
@@ -23,6 +25,7 @@ class UserModel {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return UserModel(
       uid: data['uid'] ?? '',
+      email: data['email'] ?? 'غير متوفر',
       nationalID: data['nationalID'] ?? 'غير متوفر',
       name: data['name'] ?? 'مستخدم غير معروف',
       phone: data['phone'] ?? 'غير متوفر',
