@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/presentations/pages/complaints/complaints.dart';
 import 'package:tahweela/presentations/pages/complaints/user_complaints_page.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
 import 'package:tahweela/providers/auth_provider.dart';
@@ -147,6 +148,16 @@ class Doctor extends ConsumerWidget {
                       },
                     ),
 
+                    const SizedBox(height: 12),
+                    cardButton(
+                      title: 'تقديم شكوى',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const Complaints()),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 12),
 
                     cardButton(

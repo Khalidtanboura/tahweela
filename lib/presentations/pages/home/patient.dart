@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints_patient_case.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints_view.dart';
+import 'package:tahweela/presentations/pages/complaints/user_complaints_page.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
@@ -135,8 +136,11 @@ class Patient extends ConsumerWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ComplaintsView(),
+                            builder: (context) => const UserComplaintsPage(),
                           ),
+                          /* MaterialPageRoute(
+                            builder: (_) => const ComplaintsView(),
+                          ),*/
                         );
                       },
                     ),
