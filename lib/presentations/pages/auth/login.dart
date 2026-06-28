@@ -23,36 +23,10 @@ class _LoginState extends ConsumerState<Login> {
   }
 
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
-    /* final loginStat = ref.watch(loginControllerProvider);
-    ref.listen<AsyncValue<void>>(loginControllerProvider, (previous, next) {
-      // 1. مراقبة حالة النجاح (Data)
-
-      // 2. مراقبة حالة الخطأ (Error)
-      if (next is AsyncError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error.toString(), textAlign: TextAlign.right),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    });
-
-    ref.listen<AsyncValue<void>>(loginControllerProvider, (previous, next) {
-      if (next is AsyncError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error.toString(), textAlign: TextAlign.right),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    });
-*/
     final loginStat = ref.watch(loginControllerProvider);
     ref.listen<AsyncValue<void>>(loginControllerProvider, (previous, next) {
       if (next is AsyncError) {
@@ -123,7 +97,19 @@ class _LoginState extends ConsumerState<Login> {
                       const SizedBox(height: 15),
                       loginTextFiled(
                         hint: 'كلمة المرور',
-                        isPassword: true,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
+                          onPressed: () {
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
+                          },
+                        ),
+                        isPassword: _obscurePassword,
                         controller: _passwordController,
                       ),
                     ],

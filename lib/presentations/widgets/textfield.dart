@@ -36,13 +36,17 @@ Widget loginTextFiled({
   bool isPassword = false,
   TextEditingController? controller,
   bool isReadonly = false,
+  IconButton? suffixIcon,
 }) {
-  return TextField(
+  return TextFormField(
     controller: controller,
     obscureText: isPassword,
+
     textAlign: TextAlign.right,
     readOnly: isReadonly,
+
     decoration: InputDecoration(
+      suffixIcon: suffixIcon,
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
       filled: true,
