@@ -24,7 +24,6 @@ import 'package:tahweela/presentations/pages/referral/new_referral.dart';
 import 'package:tahweela/presentations/pages/referral/secound_referral.dart';
 import 'package:tahweela/presentations/pages/usermanagment.dart';
 import 'package:tahweela/providers/auth_provider.dart';
-
 import 'core/theme.dart';
 
 void main() async {

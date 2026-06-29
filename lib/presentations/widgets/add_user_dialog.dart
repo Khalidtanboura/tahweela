@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:tahweela/data/models/public_users.dart';
+import 'package:tahweela/data/repositories/public_users_repository.dart';
 import 'package:tahweela/firebase_options.dart';
 
 class AddUserDialog extends StatefulWidget {
@@ -16,12 +18,15 @@ class _AddUserDialogState extends State<AddUserDialog> {
   final _idController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _publicUsersRepository = PublicUsersRepository();
 
-  String _selectedRole = 'admin';
+  String _selectedRole = 'patient';
   String _selectedSpecialty = 'مخ وأعصاب';
+  PublicUserModel? _selectedPublicUser;
   bool _isLoading = false;
+  bool _isSearching = false;
 
-  final List<String> _roles = ['admin', 'doctor', 'patient'];
+  final List<String> _roles = ['patient', 'doctor', 'admin'];
   final List<String> _specialties = [
     'مخ وأعصاب',
     'قلب وأوعية دموية',
@@ -32,6 +37,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
     'أطفال',
     'نساء وتوليد',
     'عيون',
+    'أنف وأذن وحنجرة',
+    'جلدية',
+    'طب نفسي',
+    'طوارئ',
   ];
 
   final Map<String, String> _roleLabels = {
@@ -48,52 +57,123 @@ class _AddUserDialogState extends State<AddUserDialog> {
     super.dispose();
   }
 
+  Future<FirebaseApp> _secondaryApp() async {
+    try {
+      return Firebase.app('SecondaryApp');
+    } catch (_) {
+      return Firebase.initializeApp(
+        name: 'SecondaryApp',
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  }
+
+  Future<void> _searchPublicUser() async {
+    final nationalId = _idController.text.trim();
+    if (nationalId.isEmpty) {
+      _showError('يرجى إدخال رقم الهوية أولاً');
+      return;
+    }
+
+    setState(() => _isSearching = true);
+    try {
+      final publicUser = await _publicUsersRepository.findByNationalId(
+        nationalId,
+      );
+
+      if (publicUser == null) {
+        _selectedPublicUser = null;
+        _nameController.clear();
+        _showError(
+          'لم يتم العثور على مريض بهذا الرقم في قاعدة البيانات العامة',
+        );
+        return;
+      }
+
+      if (publicUser.isLinked) {
+        _selectedPublicUser = null;
+        _nameController.text = publicUser.fullName;
+        _showError('هذا المريض مربوط بحساب داخل التطبيق مسبقاً');
+        return;
+      }
+
+      setState(() {
+        _selectedPublicUser = publicUser;
+        _nameController.text = publicUser.fullName;
+      });
+    } catch (e) {
+      _showError('تعذر البحث في قاعدة البيانات العامة');
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
+  }
+
   Future<void> _addUser() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedRole == 'patient') {
+      final searchedId = _selectedPublicUser?.nationalId;
+      if (_selectedPublicUser == null ||
+          searchedId != _idController.text.trim()) {
+        await _searchPublicUser();
+      }
+      if (_selectedPublicUser == null ||
+          _selectedPublicUser!.nationalId != _idController.text.trim()) {
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
-    FirebaseApp? secondaryApp;
 
     try {
-      final nationalID = _idController.text.trim();
-      final email =
-          '$nationalID@tahweela.com'; // توحيد النطاق مع قاعدة البيانات
-      final password = nationalID;
-
-      // إنشاء أو جلب التطبيق الفرعي بأمان دون تكرار في الذاكرة
-      try {
-        secondaryApp = Firebase.app('SecondaryApp');
-      } catch (_) {
-        secondaryApp = await Firebase.initializeApp(
-          name: 'SecondaryApp',
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      }
-
-      // إنشاء المستخدم عبر نسخة الـ Auth الفرعية لحماية جلسة المدير
-      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
-      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      final nationalId = _idController.text.trim();
+      final email = '$nationalId@tahweela.com';
+      final secondaryAuth = FirebaseAuth.instanceFor(
+        app: await _secondaryApp(),
       );
 
-      // حفظ البيانات في Firestore الرئيسي للمدير مع إصلاح حقل الهوية ليكون كابيتال
+      final userCredential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: nationalId,
+      );
+      final uid = userCredential.user!.uid;
+
       final userData = {
-        'uid': userCredential.user!.uid,
-        'nationalID': nationalID, // تم إصلاحها من nationalId إلى nationalID
+        'uid': uid,
+        'email': email,
+        'nationalID': nationalId,
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'role': _selectedRole,
         'createdAt': FieldValue.serverTimestamp(),
         if (_selectedRole == 'doctor') 'specialty': _selectedSpecialty,
+        if (_selectedRole == 'patient') ...{
+          'publicUserId': _selectedPublicUser!.publicUserId,
+          'gender': _selectedPublicUser!.gender,
+          'age': _selectedPublicUser!.age,
+        },
       };
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set(userData);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(
+        FirebaseFirestore.instance.collection('users').doc(uid),
+        userData,
+      );
 
-      // تسجيل خروج الحساب الجديد من التطبيق الفرعي فوراً لتنظيف الذاكرة
+      if (_selectedRole == 'patient') {
+        batch.update(
+          FirebaseFirestore.instance
+              .collection('public_users')
+              .doc(_selectedPublicUser!.documentId),
+          {
+            'is_linked': true,
+            'app_user_uid': uid,
+            'linked_at': FieldValue.serverTimestamp(),
+          },
+        );
+      }
+
+      await batch.commit();
       await secondaryAuth.signOut();
 
       if (mounted) {
@@ -101,19 +181,16 @@ class _AddUserDialogState extends State<AddUserDialog> {
         _showSuccessDialog();
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'حدث خطأ في النظام';
       if (e.code == 'email-already-in-use') {
-        message = 'رقم الهوية مسجل مسبقاً بالنظام';
+        _showError('رقم الهوية مسجل مسبقاً في النظام');
       } else if (e.code == 'weak-password') {
-        message = 'رقم الهوية قصير جداً ككلمة مرور';
+        _showError('رقم الهوية قصير جداً ككلمة مرور');
+      } else {
+        _showError(e.message ?? 'حدث خطأ أثناء إنشاء الحساب');
       }
-      _showError(message);
     } catch (e) {
-      _showError('خطأ غير متوقع: ${e.toString()}');
+      _showError('حدث خطأ غير متوقع أثناء إضافة المستخدم');
     } finally {
-      if (secondaryApp != null && _selectedRole != 'doctor') {
-        // لا نحذف التطبيق بالكامل بل نتركه للحركات القادمة لتوفير الموارد
-      }
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -121,11 +198,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontFamily: 'Cairo'),
-        ),
+        content: Text(message, textAlign: TextAlign.right),
         backgroundColor: Colors.red,
       ),
     );
@@ -176,6 +249,8 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final publicUser = _selectedPublicUser;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: AlertDialog(
@@ -190,24 +265,99 @@ class _AddUserDialogState extends State<AddUserDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _idController,
-                  keyboardType: TextInputType.number,
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedRole,
                   decoration: const InputDecoration(
-                    labelText: 'رقم الهوية الوطنية',
+                    labelText: 'صلاحية الحساب',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
-                    prefixIcon: Icon(Icons.badge_outlined),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'يرجى إدخال رقم الهوية'
-                      : null,
+                  items: _roles
+                      .map(
+                        (role) => DropdownMenuItem(
+                          value: role,
+                          child: Text(_roleLabels[role]!),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (role) {
+                    if (role == null) return;
+                    setState(() {
+                      _selectedRole = role;
+                      _selectedPublicUser = null;
+                      _nameController.clear();
+                    });
+                  },
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _idController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'رقم الهوية الوطنية',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                        onChanged: (_) {
+                          if (_selectedRole == 'patient') {
+                            setState(() => _selectedPublicUser = null);
+                          }
+                        },
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'يرجى إدخال رقم الهوية'
+                            : null,
+                      ),
+                    ),
+                    if (_selectedRole == 'patient') ...[
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: _isSearching ? null : _searchPublicUser,
+                          child: _isSearching
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.search),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (publicUser != null) ...[
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _InfoChip(label: 'العمر', value: '${publicUser.age}'),
+                        _InfoChip(label: 'الجنس', value: publicUser.gender),
+                        _InfoChip(
+                          label: 'السجل',
+                          value: publicUser.publicUserId,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
+                  readOnly: _selectedRole == 'patient',
                   decoration: const InputDecoration(
                     labelText: 'الاسم الكامل',
                     border: OutlineInputBorder(
@@ -215,7 +365,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                     ),
                     prefixIcon: Icon(Icons.person_outline),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty
+                  validator: (value) => value == null || value.trim().isEmpty
                       ? 'يرجى إدخال الاسم الكامل'
                       : null,
                 ),
@@ -230,33 +380,14 @@ class _AddUserDialogState extends State<AddUserDialog> {
                     ),
                     prefixIcon: Icon(Icons.phone_android_outlined),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty
+                  validator: (value) => value == null || value.trim().isEmpty
                       ? 'يرجى إدخال رقم الهاتف'
                       : null,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    labelText: 'صلاحية الحساب (الدور)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                  ),
-                  items: _roles
-                      .map(
-                        (r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(_roleLabels[r]!),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedRole = v!),
                 ),
                 if (_selectedRole == 'doctor') ...[
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _selectedSpecialty,
+                    initialValue: _selectedSpecialty,
                     decoration: const InputDecoration(
                       labelText: 'التخصص الطبي',
                       border: OutlineInputBorder(
@@ -264,9 +395,18 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       ),
                     ),
                     items: _specialties
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .map(
+                          (specialty) => DropdownMenuItem(
+                            value: specialty,
+                            child: Text(specialty),
+                          ),
+                        )
                         .toList(),
-                    onChanged: (v) => setState(() => _selectedSpecialty = v!),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedSpecialty = value);
+                      }
+                    },
                   ),
                 ],
               ],
@@ -275,7 +415,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: _isLoading ? null : () => Navigator.pop(context),
             child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
@@ -310,256 +450,18 @@ class _AddUserDialogState extends State<AddUserDialog> {
   }
 }
 
-/*
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label, required this.value});
 
-class AddUserDialog extends StatefulWidget {
-  const AddUserDialog({super.key});
-
-  @override
-  State<AddUserDialog> createState() => _AddUserDialogState();
-}
-
-class _AddUserDialogState extends State<AddUserDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final _idController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  String _selectedRole = 'admin';
-  String _selectedSpecialty = 'مخ وأعصاب';
-  bool _isLoading = false;
-
-  final List<String> _roles = ['admin', 'doctor', 'patient'];
-  final List<String> _specialties = [
-    'مخ وأعصاب',
-    'جراحة عامة',
-    'جراحة عظام',
-    'أورام',
-    'باطنية',
-  ];
-
-  final Map<String, String> _roleLabels = {
-    'admin': 'مدير النظام',
-    'doctor': 'طبيب',
-    'patient': 'مريض',
-  };
-
-  @override
-  void dispose() {
-    _idController.dispose();
-    _nameController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _addUser() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final email = '${_idController.text.trim()}@app.com';
-      final password = _idController.text.trim();
-
-      // 1. إنشاء حساب بـ Firebase Auth
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-
-      // 2. حفظ البيانات بـ Firestore
-      final userData = {
-        'uid': userCredential.user!.uid,
-        'nationalId': _idController.text.trim(),
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'role': _selectedRole,
-        'createdAt': FieldValue.serverTimestamp(),
-        if (_selectedRole == 'doctor') 'specialty': _selectedSpecialty,
-      };
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set(userData);
-
-      if (mounted) {
-        Navigator.pop(context);
-        _showSuccessDialog();
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = 'حدث خطأ';
-      if (e.code == 'email-already-in-use') {
-        message = 'رقم الهوية مسجل مسبقاً';
-      }
-      _showError(message);
-    } catch (e) {
-      _showError('حدث خطأ غير متوقع');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF4CAF50),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check, color: Colors.white, size: 32),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'تمت إضافة المستخدم بنجاح',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'يمكنه تسجيل الدخول باسم المستخدم وكلمة المرور',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً'),
-          ),
-        ],
-      ),
-    );
-  }
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text(
-        'إضافة مستخدم جديد',
-        textAlign: TextAlign.right,
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // رقم الهوية
-              TextFormField(
-                controller: _idController,
-                textAlign: TextAlign.right,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الهوية',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'أدخل رقم الهوية' : null,
-              ),
-              const SizedBox(height: 12),
-
-              // الاسم الكامل
-              TextFormField(
-                controller: _nameController,
-                textAlign: TextAlign.right,
-                decoration: const InputDecoration(
-                  labelText: 'الاسم الكامل',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'أدخل الاسم' : null,
-              ),
-              const SizedBox(height: 12),
-
-              // رقم الهاتف
-              TextFormField(
-                controller: _phoneController,
-                textAlign: TextAlign.right,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'رقم الهاتف',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'أدخل رقم الهاتف' : null,
-              ),
-              const SizedBox(height: 12),
-
-              // الدور
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: const InputDecoration(
-                  labelText: 'الدور',
-                  border: OutlineInputBorder(),
-                ),
-                items: _roles
-                    .map((r) => DropdownMenuItem(
-                          value: r,
-                          child: Text(_roleLabels[r]!),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedRole = v!),
-              ),
-
-              // التخصص (يظهر فقط لو الدور طبيب)
-              if (_selectedRole == 'doctor') ...[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _selectedSpecialty,
-                  decoration: const InputDecoration(
-                    labelText: 'التخصص',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _specialties
-                      .map((s) => DropdownMenuItem(
-                            value: s,
-                            child: Text(s),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedSpecialty = v!),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
-        ),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _addUser,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CAF50),
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2),
-                )
-              : const Text('إضافة', style: TextStyle(color: Colors.white)),
-        ),
-      ],
+    return Chip(
+      backgroundColor: const Color(0xFFEFF6FF),
+      label: Text('$label: $value'),
+      side: BorderSide.none,
     );
   }
-}*/
+}
