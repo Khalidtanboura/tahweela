@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tahweela/presentations/pages/complaints/complaints.dart';
+import 'package:tahweela/presentations/pages/case_details/cases_list.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints_view.dart';
+import 'package:tahweela/presentations/pages/profile.dart';
 import 'package:tahweela/presentations/pages/usermanagment.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/complanits_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
+import 'package:tahweela/providers/providers.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
-import '../notification.dart';
-import '../profile.dart';
-import '../case_details/cases_list.dart';
 
 class Admin extends ConsumerWidget {
   const Admin({super.key});
@@ -28,81 +27,114 @@ class Admin extends ConsumerWidget {
           error: (_, __) => titleCard(title: 'مرحباً، مدير النظام'),
         );
 
-    // مراقبة عدادات الشكاوى الجديدة هنا 👇
     final totalComplaintsAsync = ref.watch(totalComplaintsCountProvider);
     final pendingComplaintsAsync = ref.watch(pendingComplaintsCountProvider);
+    final totalReferralsAsync = ref.watch(totalReferralsCountProvider);
+    final pendingReferralsAsync = ref.watch(pendingReferralsCountProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xffF8FAFC),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          child: Column(
-            children: [
-              // Header: Notifications + Profile
-              Container(
-                height: 86,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B9E4F),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xffF8FAFC),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                _Header(),
+                Expanded(
+                  child: ListView(
                     children: [
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final notificationsAsync = ref.watch(
-                            userNotificationsProvider,
-                          );
-                          return notificationsAsync.when(
-                            data: (list) {
-                              final unreadCount = list
-                                  .where((n) => !n.isRead)
-                                  .length;
-                              return buildNotificationBell(
-                                context,
-                                unreadCount,
-                              );
-                            },
-                            loading: () => const SizedBox(),
-                            error: (_, __) => const SizedBox(),
-                          );
-                        },
+                      const SizedBox(height: 20),
+                      userName,
+                      const SizedBox(height: 28),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SecoundCard(
+                              value: totalReferralsAsync.when(
+                                data: (count) => count.toString(),
+                                loading: () => '...',
+                                error: (error, stackTrace) => '0',
+                              ),
+                              color: Colors.blueAccent,
+                              lableText: 'إجمالي الحالات',
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: SecoundCard(
+                              value: pendingReferralsAsync.when(
+                                data: (count) => count.toString(),
+                                loading: () => '...',
+                                error: (error, stackTrace) => '0',
+                              ),
+                              color: Colors.green,
+                              lableText: 'بانتظار M المراجعة',
+                            ),
+                          ),
+                        ],
                       ),
-                      // Notifications
-                      // IconButton(
-                      //   icon: const Icon(
-                      //     Icons.notifications_none,
-                      //     color: Colors.white,
-                      //     size: 32,
-                      //   ),
-                      //   onPressed: () {
-                      //     Navigator.push(
-                      //       context,
-                      //       MaterialPageRoute(
-                      //         builder: (context) => const NotificationPage(),
-                      //       ),
-                      //     );
-                      //   },
-                      // ),
-                      const SizedBox(width: 8),
-
-                      // Profile
-                      IconButton(
-                        icon: const Icon(
-                          Icons.person_outline,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                        onPressed: () {
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SecoundCard(
+                              value: totalComplaintsAsync.when(
+                                data: (count) => count.toString(),
+                                loading: () => '...',
+                                error: (error, stackTrace) => '0',
+                              ),
+                              color: Colors.red,
+                              lableText: 'شكاوى',
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: SecoundCard(
+                              value: pendingComplaintsAsync.when(
+                                data: (count) => count.toString(),
+                                loading: () => '...',
+                                error: (error, stackTrace) => '0',
+                              ),
+                              color: const Color(0xffF59E0B),
+                              lableText: 'قيد الانتظار',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 48),
+                      cardButton(
+                        title: 'إدارة المستخدمين',
+                        onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const Profile(),
+                              builder: (context) => const UserManagment(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      cardButton(
+                        title: 'جميع الحالات',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CasesList(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      cardButton(
+                        title: 'الشكاوي',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ComplaintsView(),
                             ),
                           );
                         },
@@ -110,113 +142,56 @@ class Admin extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ),
-
-              Expanded(
-                child: ListView(
-                  children: [
-                    const SizedBox(height: 20),
-                    userName,
-                    const SizedBox(height: 28),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: SecoundCard(
-                            value: '1',
-                            // يمكنك ربطها بمزود الحالات لاحقاً بنفس الطريقة
-                            color: Colors.blueAccent,
-                            lableText: 'إجمالي الحالات',
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: SecoundCard(
-                            value: '3',
-                            color: Colors.green,
-                            lableText: 'بانتظار M المراجعة',
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // التحديث الذكي لكروت الشكاوى هنا 👇
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: SecoundCard(
-                            value: totalComplaintsAsync.when(
-                              data: (count) => count.toString(),
-                              loading: () => '...',
-                              error: (_, __) => '0',
-                            ),
-                            color: Colors.red,
-                            lableText: 'شكاوى',
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: SecoundCard(
-                            value: pendingComplaintsAsync.when(
-                              data: (count) => count.toString(),
-                              loading: () => '...',
-                              error: (_, __) => '0',
-                            ),
-                            color: const Color(0xffF59E0B),
-                            lableText: 'قيد الانتظار',
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 48),
-                    cardButton(
-                      title: 'إدارة المستخدمين',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const UserManagment(),
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    cardButton(
-                      title: 'جميع الحالات',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CasesList(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    cardButton(
-                      title: 'الشكاوي',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ComplaintsView(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(userNotificationsProvider);
+
+    return Container(
+      height: 86,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B9E4F),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            notificationsAsync.when(
+              data: (list) {
+                final unreadCount = list.where((item) => !item.isRead).length;
+                return buildNotificationBell(context, unreadCount);
+              },
+              loading: () => const SizedBox(),
+              error: (error, stackTrace) => const SizedBox(),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(
+                Icons.person_outline,
+                color: Colors.white,
+                size: 32,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Profile()),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

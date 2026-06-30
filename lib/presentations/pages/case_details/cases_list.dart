@@ -1,74 +1,309 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/data/models/referral_model.dart';
+import 'package:tahweela/presentations/widgets/card.dart';
+import 'package:tahweela/providers/providers.dart';
 
-import '../../widgets/card.dart';
-
-class CasesList extends StatelessWidget {
+class CasesList extends ConsumerWidget {
   const CasesList({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          child: Column(
-            children: [
-              // Header السهم والعنوان
-              secoundAppbarCard(
-                title: 'الحالات',
-                icon1: Icons.reply,
-                context: context,
-              ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final referralsAsync = ref.watch(adminReferralsProvider);
 
-              // خانة البحث الفارغة
-              Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Container(
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.grey.shade300),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xffF8FAFC),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                secoundAppbarCard(
+                  title: '????????? ??????',
+                  icon1: Icons.reply,
+                  context: context,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: referralsAsync.when(
+                    data: (referrals) {
+                      if (referrals.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            '?? ???? ??????? ????? ??? ????',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        itemCount: referrals.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          return _ReferralCard(referral: referrals[index]);
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF16A34A),
+                      ),
+                    ),
+                    error: (error, _) => Center(
+                      child: Text(
+                        '???? ????? ?????????: $error',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-
-              // قائمة الحالات
-              Expanded(
-                child: ListView(
-                  // padding: const EdgeInsets.symmetric(horizontal: 15),
-                  children: [
-                    CaseCard(
-                      id: "TH-2026-00008",
-                      status: "بانتظار اعتماد المدير",
-                      statusColor: Color(0xFFD6E4FF),
-                      statusTextColor: Color(0xFF3366FF),
-                      specialty: "جراحة عامة",
-                      patientName: "",
-                    ),
-                    CaseCard(
-                      id: "TH-2026-00002",
-                      status: "قيد المراجعة",
-                      statusColor: Color(0xFFFFF4D6),
-                      statusTextColor: Color(0xFFB37E00),
-                      specialty: "جراحة عظام",
-                      patientName: "محمد المريض",
-                    ),
-                    CaseCard(
-                      id: "TH-2026-00002",
-                      status: "اعادة نظر",
-                      statusColor: Color(0xFFD6FFD8),
-                      statusTextColor: Color(0xFF1B5E20),
-                      specialty: "جراحة عظام",
-                      patientName: "محمد المريض",
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _ReferralCard extends ConsumerWidget {
+  const _ReferralCard({required this.referral});
+
+  final ReferralModel referral;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final priority = _priorityLabel(referral.priorityLevel);
+    final status = _statusLabel(referral.status);
+    final canApprove = referral.status == 'pending';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  referral.patientName.isEmpty
+                      ? '???? ??? ????'
+                      : referral.patientName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              _Badge(
+                label: status,
+                backgroundColor: canApprove
+                    ? const Color(0xFFFFF7ED)
+                    : const Color(0xFFEFF6FF),
+                textColor: canApprove
+                    ? const Color(0xFFC2410C)
+                    : const Color(0xFF1D4ED8),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '??????: ${referral.doctorName.isEmpty ? '??? ????' : referral.doctorName}',
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '???????: ${referral.diagnosis.isEmpty ? '??? ?????' : referral.diagnosis}',
+            style: const TextStyle(color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '??? ???????: ${referral.reason.isEmpty ? '??? ?????' : referral.reason}',
+            style: const TextStyle(color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _Badge(
+                label: '????????: $priority',
+                backgroundColor: _priorityColor(
+                  referral.priorityLevel,
+                ).withValues(alpha: 0.12),
+                textColor: _priorityColor(referral.priorityLevel),
+              ),
+              const SizedBox(width: 8),
+              _Badge(
+                label: '??????: ${referral.totalScore}/100',
+                backgroundColor: const Color(0xFFF1F5F9),
+                textColor: const Color(0xFF334155),
+              ),
+            ],
+          ),
+          if (canApprove) ...[
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () => _approveReferral(context, ref),
+              icon: const Icon(Icons.verified_outlined, color: Colors.white),
+              label: const Text(
+                '?????? ???????',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _approveReferral(BuildContext context, WidgetRef ref) async {
+    final noteController = TextEditingController();
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('?????? ???????'),
+        content: TextField(
+          controller: noteController,
+          maxLines: 3,
+          textAlign: TextAlign.right,
+          decoration: const InputDecoration(
+            hintText: '?????? ?????? ????????',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('?????'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('??????'),
+          ),
+        ],
+      ),
+    );
+
+    if (approved != true || !context.mounted) return;
+
+    try {
+      await ref
+          .read(referralsRepositoryProvider)
+          .approveReferral(
+            referralId: referral.id,
+            doctorId: referral.doctorId,
+            patientId: referral.patientId,
+            adminReply: noteController.text.trim(),
+          );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('?? ?????? ??????? ?????')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('???? ?????? ???????: $error')));
+      }
+    }
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+String _priorityLabel(String priority) {
+  switch (priority) {
+    case 'critical':
+      return '????';
+    case 'high':
+      return '?????';
+    case 'medium':
+      return '??????';
+    case 'low':
+    default:
+      return '??????';
+  }
+}
+
+Color _priorityColor(String priority) {
+  switch (priority) {
+    case 'critical':
+      return const Color(0xFFDC2626);
+    case 'high':
+      return const Color(0xFFF97316);
+    case 'medium':
+      return const Color(0xFF2563EB);
+    case 'low':
+    default:
+      return const Color(0xFF16A34A);
+  }
+}
+
+String _statusLabel(String status) {
+  switch (status) {
+    case 'approved':
+    case 'accepted':
+      return '?????';
+    case 'returned':
+      return '???? ??????';
+    case 'pending':
+    default:
+      return '??????? ????????';
   }
 }
