@@ -34,3 +34,10 @@ final pendingReferralsCountProvider = StreamProvider.autoDispose<int>((ref) {
       .streamReferralModels(role: 'admin')
       .map((items) => items.where((item) => item.status == 'pending').length);
 });
+
+final medicalReviewReferralsProvider =
+    StreamProvider.autoDispose<List<ReferralModel>>((ref) {
+      return ref
+          .watch(referralsRepositoryProvider)
+          .streamMedicalReviewReferrals();
+    });

@@ -1,13 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tahweela/data/models/referral_model.dart';
+import 'auth_repository.dart';
 import 'notifications_repository.dart';
+import 'public_users_repository.dart';
 
 class ReferralsRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationsRepository _notificationsRepo;
+  final AuthRepository _authRepository;
+  final PublicUsersRepository _publicUsersRepository;
 
-  ReferralsRepository({required NotificationsRepository notificationsRepo})
-    : _notificationsRepo = notificationsRepo;
+  ReferralsRepository({
+    required NotificationsRepository notificationsRepo,
+    AuthRepository? authRepository,
+    PublicUsersRepository? publicUsersRepository,
+  }) : _notificationsRepo = notificationsRepo,
+       _authRepository = authRepository ?? AuthRepository(),
+       _publicUsersRepository =
+           publicUsersRepository ?? PublicUsersRepository();
 
   Future<void> createReferral({
     required String doctorId,
@@ -16,17 +26,35 @@ class ReferralsRepository {
     required String patientName,
     required String diagnosis,
     required String reason,
+    String patientNationalId = '',
+    String patientPhone = '',
+    String diseaseType = '',
+    List<Map<String, dynamic>> attachments = const [],
+    List<Map<String, dynamic>> initialQuestions = const [],
+    int initialScore = 0,
+    String initialNotes = '',
   }) async {
-    final referral = ReferralModel(
+    final referralData = ReferralModel(
       doctorId: doctorId,
       doctorName: doctorName,
       patientId: patientId,
       patientName: patientName,
       diagnosis: diagnosis,
       reason: reason,
-    );
+    ).toMap();
 
-    await _firestore.collection('referrals').add(referral.toMap());
+    referralData.addAll({
+      'patientNationalId': patientNationalId,
+      'patientPhone': patientPhone,
+      'diseaseType': diseaseType,
+      'attachments': attachments,
+      'initialQuestions': initialQuestions,
+      'initialScore': initialScore,
+      'initialNotes': initialNotes,
+      'submittedForAdminReviewAt': FieldValue.serverTimestamp(),
+    });
+
+    await _firestore.collection('referrals').add(referralData);
 
     await _notificationsRepo.sendNotificationToAdmin(
       title: '??? ????? ??? ????',
@@ -41,15 +69,18 @@ class ReferralsRepository {
     required String patientId,
     String adminReply = '',
   }) async {
+    final patientUid = await _ensurePatientUid(patientId);
+
     await _firestore.collection('referrals').doc(referralId).update({
       'status': 'approved',
       'adminReply': adminReply,
+      'patientId': patientUid,
       'approvedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
     await _notificationsRepo.sendNotificationToPatient(
-      patientUid: patientId,
+      patientUid: patientUid,
       title: '?? ?????? ?????? ?????',
       body: adminReply.isEmpty
           ? '?? ?????? ??????? ??????? ??? ?????? ????? ??????.'
@@ -65,6 +96,35 @@ class ReferralsRepository {
           : '?? ?????? ??????? ???? ??????. ?????? ???????: $adminReply',
       type: 'system_alert',
     );
+
+    await _notificationsRepo.sendNotificationToAllDoctors(
+      title: '????? ????? ???????',
+      body: '???? ????? ????? ??????? ??????? ????????.',
+      type: 'new_referral',
+    );
+  }
+
+  Future<String> _ensurePatientUid(String patientIdOrNationalId) async {
+    final existingUser = await _authRepository.findUserByNationalId(
+      patientIdOrNationalId,
+    );
+    if (existingUser != null) return existingUser.uid;
+
+    final publicUser = await _publicUsersRepository.findByNationalId(
+      patientIdOrNationalId,
+    );
+    if (publicUser == null) return patientIdOrNationalId;
+    if (publicUser.isLinked && publicUser.appUserUid != null) {
+      return publicUser.appUserUid!;
+    }
+
+    final patient = await _authRepository.createLinkedUserFromPublicUser(
+      publicUser: publicUser,
+      role: 'patient',
+      phone: '',
+      password: publicUser.nationalId,
+    );
+    return patient.uid;
   }
 
   Future<void> updateReferralStatus({
@@ -120,5 +180,25 @@ class ReferralsRepository {
     }
 
     return query.snapshots();
+  }
+
+  Stream<List<ReferralModel>> streamMedicalReviewReferrals() {
+    return _firestore
+        .collection('referrals')
+        .where('status', whereIn: ['approved', 'accepted'])
+        .snapshots()
+        .map((snapshot) {
+          final referrals = snapshot.docs
+              .map((doc) => ReferralModel.fromFirestore(doc))
+              .toList();
+
+          referrals.sort((a, b) {
+            final aDate = a.updatedAt ?? a.createdAt ?? DateTime(0);
+            final bDate = b.updatedAt ?? b.createdAt ?? DateTime(0);
+            return bDate.compareTo(aDate);
+          });
+
+          return referrals;
+        });
   }
 }

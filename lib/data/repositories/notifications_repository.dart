@@ -68,6 +68,22 @@ class NotificationsRepository {
     });
   }
 
+  Future<void> sendNotificationToAllDoctors({
+    required String title,
+    required String body,
+    required String type,
+  }) async {
+    await _firestore.collection('notifications').add({
+      'title': title,
+      'body': body,
+      'targetRole': 'doctor',
+      'targetUid': null,
+      'type': type,
+      'createdAt': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+  }
+
   /// ج) إشعارات موجهة إلى [مريض محدد]
   /// تُستدعى عند: قبول المدير لتحويل المريض، تحديث الملف الصحي، أو الرد على شكوى المريض
   Future<void> sendNotificationToPatient({

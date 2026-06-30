@@ -5,11 +5,21 @@ import 'package:tahweela/presentations/widgets/card.dart';
 import 'package:tahweela/providers/providers.dart';
 
 class CasesList extends ConsumerWidget {
-  const CasesList({super.key});
+  const CasesList({super.key, this.mode = CasesListMode.admin});
+
+  final CasesListMode mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final referralsAsync = ref.watch(adminReferralsProvider);
+    final referralsAsync = mode == CasesListMode.medicalReview
+        ? ref.watch(medicalReviewReferralsProvider)
+        : ref.watch(adminReferralsProvider);
+    final title = mode == CasesListMode.medicalReview
+        ? 'مراجعة الحالات'
+        : 'جميع الحالات';
+    final emptyMessage = mode == CasesListMode.medicalReview
+        ? 'لا توجد حالات معتمدة للمراجعة حاليا'
+        : 'لا توجد حالات حتى الآن';
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -21,7 +31,7 @@ class CasesList extends ConsumerWidget {
             child: Column(
               children: [
                 secoundAppbarCard(
-                  title: '????????? ??????',
+                  title: title,
                   icon1: Icons.reply,
                   context: context,
                 ),
@@ -30,19 +40,23 @@ class CasesList extends ConsumerWidget {
                   child: referralsAsync.when(
                     data: (referrals) {
                       if (referrals.isEmpty) {
-                        return const Center(
+                        return Center(
                           child: Text(
-                            '?? ???? ??????? ????? ??? ????',
-                            style: TextStyle(color: Colors.grey),
+                            emptyMessage,
+                            style: const TextStyle(color: Colors.grey),
                           ),
                         );
                       }
 
                       return ListView.separated(
                         itemCount: referrals.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          return _ReferralCard(referral: referrals[index]);
+                          return _ReferralCard(
+                            referral: referrals[index],
+                            mode: mode,
+                          );
                         },
                       );
                     },
@@ -70,15 +84,17 @@ class CasesList extends ConsumerWidget {
 }
 
 class _ReferralCard extends ConsumerWidget {
-  const _ReferralCard({required this.referral});
+  const _ReferralCard({required this.referral, required this.mode});
 
   final ReferralModel referral;
+  final CasesListMode mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final priority = _priorityLabel(referral.priorityLevel);
     final status = _statusLabel(referral.status);
-    final canApprove = referral.status == 'pending';
+    final canApprove =
+        mode == CasesListMode.admin && referral.status == 'pending';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -155,6 +171,27 @@ class _ReferralCard extends ConsumerWidget {
               ),
             ],
           ),
+          if (mode == CasesListMode.medicalReview) ...[
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, 'caseReview'),
+              icon: const Icon(Icons.rate_review_outlined, color: Colors.white),
+              label: const Text(
+                'بدء التقييم الطبي',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
           if (canApprove) ...[
             const SizedBox(height: 14),
             ElevatedButton.icon(
@@ -235,6 +272,8 @@ class _ReferralCard extends ConsumerWidget {
     }
   }
 }
+
+enum CasesListMode { admin, medicalReview }
 
 class _Badge extends StatelessWidget {
   const _Badge({

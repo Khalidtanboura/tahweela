@@ -50,12 +50,11 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCFP207W_WLyVG0ktgk1TyeOI_EIcxmko0',
-    appId: '1:910580096972:android:e58a35d0a81b0a48614769',
-    messagingSenderId: '910580096972',
-    projectId: 'chatapp-a964f',
-    databaseURL: 'https://chatapp-a964f-default-rtdb.firebaseio.com',
-    storageBucket: 'chatapp-a964f.appspot.com',
+    apiKey: 'AIzaSyCuRtaXdOFj4GNBuA8hCeWzPaFcqyHiQSU',
+    appId: '1:601286053602:android:dc1b755fdcc75e557d58bb',
+    messagingSenderId: '601286053602',
+    projectId: 'tahwelaa',
+    storageBucket: 'tahwelaa.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

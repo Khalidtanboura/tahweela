@@ -1,8 +1,10 @@
 import 'package:file_picker/file_picker.dart';
-
 import 'package:flutter/material.dart';
+import 'package:tahweela/data/models/public_users.dart';
+import 'package:tahweela/data/models/referral_draft.dart';
+import 'package:tahweela/data/repositories/public_users_repository.dart';
+import 'package:tahweela/presentations/pages/referral/secound_referral.dart';
 import 'package:tahweela/presentations/widgets/buttons.dart';
-import 'package:tahweela/presentations/widgets/dropdown_menu.dart';
 
 import '../../../core/theme.dart';
 import '../../widgets/card.dart';
@@ -15,190 +17,300 @@ class NewReferral extends StatefulWidget {
 }
 
 class _NewReferralState extends State<NewReferral> {
-  String? _selectedValue;
+  final _nationalIdController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _publicUsersRepository = PublicUsersRepository();
+
+  PublicUserModel? _patient;
+  String? _diseaseType;
+  List<PlatformFile> _selectedFiles = [];
+  bool _isSearching = false;
+
+  static const _diseaseTypes = [
+    'القلب',
+    'العظام',
+    'الدماغ',
+    'الأورام',
+    'الأطفال',
+    'الباطنية',
+    'الطوارئ',
+  ];
+
+  @override
+  void dispose() {
+    _nationalIdController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _ageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchPatient() async {
+    final nationalId = _nationalIdController.text.trim();
+    if (nationalId.isEmpty) {
+      _showSnackBar('يرجى إدخال رقم الهوية أولا');
+      return;
+    }
+
+    setState(() => _isSearching = true);
+    try {
+      final patient = await _publicUsersRepository.findByNationalId(nationalId);
+      if (patient == null) {
+        _clearPatientFields();
+        _showSnackBar('لم يتم العثور على مريض بهذا الرقم');
+        return;
+      }
+
+      setState(() {
+        _patient = patient;
+        _nameController.text = patient.fullName;
+        _ageController.text = patient.age.toString();
+      });
+    } catch (_) {
+      _showSnackBar('تعذر جلب بيانات المريض');
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      withData: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+    );
+
+    if (result == null) return;
+    setState(() => _selectedFiles = result.files);
+  }
+
+  void _continue() {
+    if (_nationalIdController.text.trim().isEmpty) {
+      _showSnackBar('يرجى إدخال رقم الهوية');
+      return;
+    }
+    if (_patient == null) {
+      _showSnackBar('يرجى جلب بيانات المريض أولا');
+      return;
+    }
+    if (_phoneController.text.trim().isEmpty) {
+      _showSnackBar('يرجى إدخال رقم الهاتف');
+      return;
+    }
+    if (_diseaseType == null) {
+      _showSnackBar('يرجى اختيار نوع المرض');
+      return;
+    }
+    if (_selectedFiles.isEmpty) {
+      _showSnackBar('يرجى إرفاق ملف طبي واحد على الأقل');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SecondReferral(
+          draft: ReferralDraft(
+            patient: _patient!,
+            phone: _phoneController.text.trim(),
+            diseaseType: _diseaseType!,
+            files: _selectedFiles,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _clearPatientFields() {
+    setState(() {
+      _patient = null;
+      _nameController.clear();
+      _ageController.clear();
+    });
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message, textAlign: TextAlign.right)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    List<PlatformFile> selectedFiles = [];
-    Future<void> pickFiles() async {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        allowMultiple: true,
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'png', 'jpg'],
-      );
-
-      if (result != null) {
-        setState(() {
-          selectedFiles.addAll(result.files);
-        });
-      }
-    }
-
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          child: Column(
-            children: [
-              appTitleCard(title: 'حالة تحويل جديدة'),
-              const SizedBox(height: 22),
-
-              // 2. قائمة المستخدمين
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE0E6ED)),
-                  ),
-                  child: Form(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xffF8FAFC),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                appTitleCard(title: 'حالة تحويل جديدة'),
+                const SizedBox(height: 22),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE0E6ED)),
+                    ),
                     child: ListView(
                       children: [
-                        _buildTextField('ادخل رقم الهوية', label: 'رقم الهوية'),
-                        _buildTextField(
-                          'الاسم كامل',
-                          isEnabled: false,
+                        _LabeledField(
                           label: 'رقم الهوية',
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _nationalIdController,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (_) => _clearPatientFields(),
+                                  decoration: const InputDecoration(
+                                    hintText: 'ادخل رقم الهوية',
+                                    prefixIcon: Icon(Icons.badge_outlined),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                height: 56,
+                                child: OutlinedButton(
+                                  onPressed: _isSearching
+                                      ? null
+                                      : _fetchPatient,
+                                  child: _isSearching
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('جلب'),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        _buildTextField(
-                          'ادخل رقم الهاتف ',
-                          label: 'ادخل رقم الهاتف ',
+                        _LabeledField(
+                          label: 'الاسم الكامل',
+                          child: TextField(
+                            controller: _nameController,
+                            enabled: false,
+                            decoration: const InputDecoration(
+                              hintText: 'الاسم كامل',
+                            ),
+                          ),
+                        ),
+                        _LabeledField(
+                          label: 'ادخل رقم الهاتف',
+                          child: TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              hintText: 'ادخل رقم الهاتف',
+                            ),
+                          ),
                         ),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          spacing: 15,
-
                           children: [
                             Expanded(
-                              child: _buildTextField(
-                                '01/09/2001',
-                                isEnabled: false,
+                              child: _LabeledField(
+                                label: 'العمر',
+                                child: TextField(
+                                  controller: _ageController,
+                                  enabled: false,
+                                  decoration: const InputDecoration(
+                                    hintText: 'العمر',
+                                  ),
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 14),
                             Expanded(
-                              child: customDropdown(
-                                selectedValue: _selectedValue,
-                                onChanged: (value) {
-                                  setState(() {
-                                    value = _selectedValue;
-                                  });
-                                },
-                                hint: 'نوع المرض',
-                                items: ['القلب', 'العظام', 'الدماغ'],
+                              child: _LabeledField(
+                                label: 'نوع المرض',
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _diseaseType,
+                                  hint: const Text('نوع المرض'),
+                                  items: _diseaseTypes
+                                      .map(
+                                        (type) => DropdownMenuItem(
+                                          value: type,
+                                          child: Text(type),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (value) {
+                                    setState(() => _diseaseType = value);
+                                  },
+                                ),
                               ),
                             ),
                           ],
                         ),
-
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
-
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: const Color(0xFFE0E6ED)),
                           ),
                           child: Column(
                             children: [
-                              // زر الاختيار
-                              OutlinedButton(
-                                onPressed: pickFiles,
+                              OutlinedButton.icon(
+                                onPressed: _pickFiles,
+                                icon: const Icon(Icons.attach_file),
+                                label: const Text('اختيار ملف من الجهاز'),
                                 style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF23A455),
                                   side: const BorderSide(
                                     color: Color(0xFF23A455),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 30,
+                                    horizontal: 28,
                                     vertical: 12,
                                   ),
                                 ),
-                                child: const Text(
-                                  "اختيار ملف من الجهاز",
-                                  style: TextStyle(
-                                    color: Color(0xFF23A455),
-                                    fontWeight: FontWeight.bold,
+                              ),
+                              const SizedBox(height: 14),
+                              if (_selectedFiles.isEmpty)
+                                const Text(
+                                  'لم يتم اختيار ملفات',
+                                  style: TextStyle(color: Colors.grey),
+                                )
+                              else
+                                ..._selectedFiles.map(
+                                  (file) => ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: const Icon(Icons.description),
+                                    title: Text(
+                                      file.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Text(
+                                      '${file.extension?.toUpperCase() ?? 'FILE'} - ${(file.size / 1024 / 1024).toStringAsFixed(1)} MB',
+                                    ),
                                   ),
                                 ),
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              // قائمة عرض الملفات المرفقة (كما في الصورة)
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: selectedFiles.length,
-                                itemBuilder: (context, index) {
-                                  final file = selectedFiles[index];
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFD),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0xFFE8EEF5),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        // الحجم والنوع (يسار)
-                                        Text(
-                                          "${file.extension?.toUpperCase()} • ${(file.size / 1024 / 1024).toStringAsFixed(1)} MB",
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        // اسم الملف (يمين)
-                                        Text(
-                                          file.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-
-                              const SizedBox(height: 30),
-
-                              // زر استمرار للرفع فعلياً
                             ],
                           ),
                         ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                            top: 32,
-                            left: 20,
-                            right: 20,
-                          ),
-
-                          width: double.infinity,
-                          height: 55,
-                          child: customButton(
-                            text: 'استمرار',
-                            onTap: () {
-                              Navigator.of(context).pushNamed('secondReferral');
-                            },
-                          ),
-                        ),
+                        const SizedBox(height: 28),
+                        customButton(text: 'استمرار', onTap: _continue),
                       ],
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -206,41 +318,31 @@ class _NewReferralState extends State<NewReferral> {
   }
 }
 
-Widget _buildTextField(
-  String hint, {
-  Color? fillColor,
-  bool isEnabled = true,
-  String label = '',
-}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({required this.label, required this.child});
 
-    children: [
-      Visibility(
-        visible: label.isEmpty ? false : true,
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textDark,
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          child,
+        ],
       ),
-      const SizedBox(height: 8),
-      Container(
-        margin: EdgeInsets.only(bottom: 12),
-        child: TextField(
-          enabled: isEnabled,
-          textAlign: TextAlign.start,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey),
-            fillColor: isEnabled ? fillColor ?? Colors.white : Colors.grey[200],
-            // contentPadding: const EdgeInsets.only(bottom: 20),
-          ),
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }

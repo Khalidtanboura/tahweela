@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/firebase_options.dart';
 import 'package:tahweela/presentations/pages/auth/login.dart';
 import 'package:tahweela/presentations/pages/auth/splash.dart';
 import 'package:tahweela/presentations/pages/case_details/case_admin.dart';
@@ -28,7 +29,7 @@ import 'core/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: MyApp()));
 }
 

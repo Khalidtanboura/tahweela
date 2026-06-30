@@ -19,12 +19,12 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
     state = const AsyncLoading();
 
     try {
-      final trimmedNationalID = nationalID.trim();
-      final email = '$trimmedNationalID@tahweela.com';
+      final normalizedNationalID = _normalizeNationalId(nationalID);
+      final email = '$normalizedNationalID@tahweela.com';
 
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
-        password: password.trim(),
+        password: _normalizePassword(password),
       );
 
       final uid = credential.user?.uid;
@@ -37,18 +37,42 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
         return;
       }
 
-      final userDoc = await FirebaseFirestore.instance
+      var userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
 
       if (!userDoc.exists || userDoc.data() == null) {
-        await FirebaseAuth.instance.signOut();
-        state = AsyncValue.error(
-          'لا توجد بيانات لهذا المستخدم في النظام',
-          StackTrace.current,
-        );
-        return;
+        final linkedUserDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .where('nationalID', isEqualTo: normalizedNationalID)
+            .limit(1)
+            .get();
+
+        if (linkedUserDoc.docs.isEmpty) {
+          await FirebaseAuth.instance.signOut();
+          state = AsyncValue.error(
+            'لا توجد بيانات لهذا المستخدم في النظام',
+            StackTrace.current,
+          );
+          return;
+        }
+
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          ...linkedUserDoc.docs.first.data(),
+          'uid': uid,
+          'email': email,
+          'nationalID': normalizedNationalID,
+        });
+
+        if (linkedUserDoc.docs.first.id != uid) {
+          await linkedUserDoc.docs.first.reference.delete();
+        }
+
+        userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
       }
 
       final role = userDoc.data()?['role'];
@@ -64,7 +88,7 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
       state = const AsyncData<void>(null);
     } on FirebaseAuthException catch (e) {
       state = AsyncValue.error(_authErrorMessage(e), StackTrace.current);
-    } catch (e) {
+    } catch (_) {
       state = AsyncValue.error(
         'حدث خطأ غير متوقع، حاول مرة أخرى',
         StackTrace.current,
@@ -73,10 +97,25 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
   }
 
   String _authErrorMessage(FirebaseAuthException error) {
+    final details = error.message?.trim() ?? '';
+    final lowerDetails = details.toLowerCase();
+
+    if (error.code == 'operation-not-allowed' ||
+        lowerDetails.contains('password_login_disabled') ||
+        lowerDetails.contains('configuration_not_found')) {
+      return 'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase Authentication';
+    }
+
+    if (lowerDetails.contains('connection closed') ||
+        lowerDetails.contains('internal error')) {
+      return 'تعذر الاتصال بخدمة Firebase Authentication. تحقق من الإنترنت وإعدادات Firebase للتطبيق';
+    }
+
     switch (error.code) {
       case 'network-request-failed':
         return 'يرجى التحقق من اتصال الإنترنت';
       case 'invalid-credential':
+      case 'invalid-login-credentials':
       case 'invalid-email':
       case 'user-not-found':
       case 'wrong-password':
@@ -84,7 +123,28 @@ class LoginController extends StateNotifier<AsyncValue<void>> {
       case 'too-many-requests':
         return 'تمت محاولات كثيرة، انتظر قليلاً ثم حاول مرة أخرى';
       default:
-        return 'فشل تسجيل الدخول، تحقق من البيانات وحاول مرة أخرى';
+        if (details.isNotEmpty) {
+          return 'فشل تسجيل الدخول. رمز الخطأ: ${error.code}. التفاصيل: $details';
+        }
+        return 'فشل تسجيل الدخول. رمز الخطأ: ${error.code}';
     }
+  }
+
+  String _normalizeNationalId(String value) {
+    return value.trim().replaceAll(RegExp(r'[\s-]+'), '').replaceAllMapped(
+      RegExp(r'[٠-٩۰-۹]'),
+      (match) {
+        const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+        const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+        final digit = match.group(0)!;
+        final arabicIndex = arabicDigits.indexOf(digit);
+        if (arabicIndex != -1) return arabicIndex.toString();
+        return persianDigits.indexOf(digit).toString();
+      },
+    );
+  }
+
+  String _normalizePassword(String value) {
+    return _normalizeNationalId(value);
   }
 }
