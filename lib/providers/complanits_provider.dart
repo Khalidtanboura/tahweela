@@ -35,15 +35,17 @@ class ComplaintNotifier extends AsyncNotifier<void> {
       final userName = userData['name'] ?? 'مجهول';
       final userRole = userData['role'] ?? 'patient';
 
-      await FirebaseFirestore.instance.collection('complaints').add({
-        'text': complaintText.trim(),
-        'userId': user.uid,
-        'userName': userName,
-        'userRole': userRole,
-        'status': 'pending',
-        'replyText': '',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final complaintDoc = await FirebaseFirestore.instance
+          .collection('complaints')
+          .add({
+            'text': complaintText.trim(),
+            'userId': user.uid,
+            'userName': userName,
+            'userRole': userRole,
+            'status': 'pending',
+            'replyText': '',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
       // ✅ الحل: جلب مستودع الإشعارات باستخدام ref.read المتاح محلياً
       final notificationsRepo = ref.read(notificationsRepositoryProvider);
@@ -52,6 +54,8 @@ class ComplaintNotifier extends AsyncNotifier<void> {
         title: 'شكوى جديدة في النظام ⚠️',
         body: 'قام $userName بتقديم شكوى بخصوص: $complaintText',
         type: 'complaint_update',
+        relatedId: complaintDoc.id,
+        routeName: 'complaintsView',
       );
 
       state = const AsyncData(null);

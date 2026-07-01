@@ -373,7 +373,7 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Chip(
       backgroundColor: const Color(0xFFEFF6FF),
-      label: Text('$label: $value'),
+      label: Text('$label: $value', style: TextStyle(color: Colors.black)),
       side: BorderSide.none,
     );
   }

@@ -9,6 +9,8 @@ class ReferralModel {
   final String patientName;
   final String diagnosis;
   final String reason;
+  final String diseaseType;
+  final String assignedSpecialty;
   final String status;
   final String adminReply;
   final MedicalScoreModel medicalScore;
@@ -23,6 +25,8 @@ class ReferralModel {
     required this.patientName,
     required this.diagnosis,
     required this.reason,
+    this.diseaseType = '',
+    this.assignedSpecialty = '',
     this.status = 'pending',
     this.adminReply = '',
     this.medicalScore = const MedicalScoreModel(
@@ -49,6 +53,8 @@ class ReferralModel {
       patientName: data['patientName']?.toString() ?? '',
       diagnosis: data['diagnosis']?.toString() ?? '',
       reason: data['reason']?.toString() ?? '',
+      diseaseType: data['diseaseType']?.toString() ?? '',
+      assignedSpecialty: data['assignedSpecialty']?.toString() ?? '',
       status: data['status']?.toString() ?? 'pending',
       adminReply: data['adminReply']?.toString() ?? '',
       medicalScore: MedicalScoreModel.fromMap(
@@ -75,6 +81,8 @@ class ReferralModel {
       'patientName': patientName,
       'diagnosis': diagnosis,
       'reason': reason,
+      'diseaseType': diseaseType,
+      'assignedSpecialty': assignedSpecialty,
       'status': status,
       'adminReply': adminReply,
       'medicalScore': medicalScore.toMap(),

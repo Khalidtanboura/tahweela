@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tahweela/data/models/referral_model.dart';
 import 'package:tahweela/firebase_options.dart';
 import 'package:tahweela/presentations/pages/auth/login.dart';
 import 'package:tahweela/presentations/pages/auth/splash.dart';
@@ -73,7 +74,13 @@ class MyApp extends ConsumerWidget {
         'complaints': (context) => Complaints(),
         'casePatient': (context) => CasePatient(),
         'caseAdmin': (context) => CaseAdmin(),
-        'caseReview': (context) => CaseReview(),
+        'caseReview': (context) {
+          final referral = ModalRoute.of(context)?.settings.arguments;
+          if (referral is ReferralModel) {
+            return CaseReview(referral: referral);
+          }
+          return const CasesList(mode: CasesListMode.medicalReview);
+        },
         'caseDetailsDoctor': (context) => CaseDetailsDoctor(),
         'review': (context) => Review(),
         'myNotification': (context) => NotificationPage(),

@@ -88,10 +88,15 @@ class _SecondReferralState extends ConsumerState<SecondReferral> {
           );
 
       if (!mounted) return;
-      _showSnackBar('تم إرسال الحالة لاعتماد مدير النظام');
+      _showSnackBar('تم إنشاء حساب المريض وإرسال الحالة للمراجعة الطبية');
       Navigator.popUntil(context, (route) => route.isFirst);
-    } catch (_) {
+    } on FirebaseException catch (error) {
+      debugPrint(
+        'Referral submit FirebaseException: ${error.plugin}/${error.code} ${error.message}',
+      );
       _showSnackBar('تعذر إرسال الحالة، يرجى المحاولة مرة أخرى');
+    } catch (error) {
+      _showSnackBar('تعذر إرسال الحالة: $error');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -105,7 +110,9 @@ class _SecondReferralState extends ConsumerState<SecondReferral> {
 
     for (final file in draft.files) {
       final bytes = file.bytes;
-      if (bytes == null) continue;
+      if (bytes == null) {
+        throw StateError('تعذر قراءة الملف ${file.name}');
+      }
 
       final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
       final ref = storage.ref('$referralFolder/$safeName');
@@ -240,7 +247,7 @@ class _SecondReferralState extends ConsumerState<SecondReferral> {
                       customButton(
                         text: _isSubmitting
                             ? 'جاري الإرسال...'
-                            : 'إرسال الحالة لاعتماد مدير النظام',
+                            : 'إرسال الحالة للمراجعة الطبية',
                         onTap: _isSubmitting ? () {} : _submit,
                       ),
                     ],

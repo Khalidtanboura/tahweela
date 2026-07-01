@@ -116,7 +116,13 @@ class Patient extends ConsumerWidget {
                     cardButton(
                       title: 'طلباتي',
                       onTap: () {
-                        Navigator.of(context).pushNamed('casesList');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const CasesList(mode: CasesListMode.patient),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 12),

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:tahweela/data/models/public_users.dart';
@@ -27,6 +29,23 @@ class _NewReferralState extends State<NewReferral> {
   String? _diseaseType;
   List<PlatformFile> _selectedFiles = [];
   bool _isSearching = false;
+  static const _requireAttachment = false;
+  static const _logicalDiseaseTypes = [
+    'أمراض البطن والجهاز الهضمي',
+    'أمراض الكبد والكلى والسكري',
+    'إصابات العظام والمفاصل',
+    'أمراض القلب والأوعية الدموية',
+    'أمراض الدماغ والأعصاب',
+    'الأورام',
+    'أمراض الأطفال',
+    'الحمل والولادة والنساء',
+    'أمراض العيون',
+    'الأنف والأذن والحنجرة',
+    'الأمراض الجلدية',
+    'الصحة النفسية',
+    'حالات جراحية عامة',
+    'حالات طارئة',
+  ];
 
   static const _diseaseTypes = [
     'القلب',
@@ -104,7 +123,7 @@ class _NewReferralState extends State<NewReferral> {
       _showSnackBar('يرجى اختيار نوع المرض');
       return;
     }
-    if (_selectedFiles.isEmpty) {
+    if (_requireAttachment && _selectedFiles.isEmpty) {
       _showSnackBar('يرجى إرفاق ملف طبي واحد على الأقل');
       return;
     }
@@ -237,12 +256,17 @@ class _NewReferralState extends State<NewReferral> {
                                 label: 'نوع المرض',
                                 child: DropdownButtonFormField<String>(
                                   initialValue: _diseaseType,
+                                  isExpanded: true,
                                   hint: const Text('نوع المرض'),
-                                  items: _diseaseTypes
+                                  items: _logicalDiseaseTypes
                                       .map(
                                         (type) => DropdownMenuItem(
                                           value: type,
-                                          child: Text(type),
+                                          child: Text(
+                                            type,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
                                       )
                                       .toList(),

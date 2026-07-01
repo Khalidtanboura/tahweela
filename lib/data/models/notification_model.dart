@@ -9,6 +9,9 @@ class NotificationModel {
   final String?
   targetUid; // محدد لـ UID معين (مثل مريض محدد) أو null لجميع أصحاب الدور (مثل كل المدراء)
   final String type; // 'new_referral', 'complaint_update', 'system_alert'
+  final String? targetSpecialty;
+  final String? relatedId;
+  final String? routeName;
   final DateTime createdAt;
   final bool isRead;
 
@@ -19,6 +22,9 @@ class NotificationModel {
     required this.targetRole,
     this.targetUid,
     required this.type,
+    this.targetSpecialty,
+    this.relatedId,
+    this.routeName,
     required this.createdAt,
     this.isRead = false,
   });
@@ -32,6 +38,9 @@ class NotificationModel {
       targetRole: data['targetRole'] ?? 'patient',
       targetUid: data['targetUid'],
       type: data['type'] ?? 'system_alert',
+      targetSpecialty: data['targetSpecialty']?.toString(),
+      relatedId: data['relatedId']?.toString(),
+      routeName: data['routeName']?.toString(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
     );
@@ -44,6 +53,9 @@ class NotificationModel {
       'targetRole': targetRole,
       'targetUid': targetUid,
       'type': type,
+      'targetSpecialty': targetSpecialty,
+      'relatedId': relatedId,
+      'routeName': routeName,
       'createdAt': FieldValue.serverTimestamp(),
       'isRead': isRead,
     };

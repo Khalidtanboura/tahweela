@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../providers/notifications_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'case_details/cases_list.dart';
 import '../widgets/card.dart';
 
 class NotificationPage extends ConsumerWidget {
@@ -82,6 +83,33 @@ class NotificationPage extends ConsumerWidget {
                             ref
                                 .read(notificationsRepositoryProvider)
                                 .markAsRead(item.id);
+                            final routeName = item.routeName;
+                            if (routeName != null && routeName.isNotEmpty) {
+                              final user = userState.value;
+                              if (routeName == 'casesList' &&
+                                  user?.role == 'doctor') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CasesList(
+                                      mode: CasesListMode.medicalReview,
+                                    ),
+                                  ),
+                                );
+                              } else if (routeName == 'casePatient' &&
+                                  user?.role == 'patient') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CasesList(
+                                      mode: CasesListMode.patient,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                Navigator.pushNamed(context, routeName);
+                              }
+                            }
 
                             // هندسة حركة التنقل مستقبلاً: يمكنك هنا فحص item.type
                             // وتوجيه المستخدم لشاشة الحالة أو الشكاوى المرتبطة بالإشعار

@@ -26,13 +26,17 @@ class ComplaintsRepository {
       text: complaintText,
     );
 
-    await _firestore.collection('complaints').add(complaint.toMap());
+    final complaintDoc = await _firestore
+        .collection('complaints')
+        .add(complaint.toMap());
 
     // ثانياً: إرسال الإشعار التلقائي للمدير فوراً عند نجاح الحفظ
     await _notificationsRepo.sendNotificationToAdmin(
       title: 'شكوى جديدة في النظام ⚠️',
       body: 'قام $userName بتقديم شكوى بخصوص: $complaintText',
       type: 'complaint_update',
+      relatedId: complaintDoc.id,
+      routeName: 'complaintsView',
     );
   }
 
@@ -58,6 +62,8 @@ class ComplaintsRepository {
         title: 'تم الرد على شكواك التقنية',
         body: 'رد الإدارة: $replyText',
         type: 'complaint_update',
+        relatedId: complaintId,
+        routeName: 'complaintsDoctorCase',
       );
     } else if (targetRole == 'patient') {
       await _notificationsRepo.sendNotificationToPatient(
