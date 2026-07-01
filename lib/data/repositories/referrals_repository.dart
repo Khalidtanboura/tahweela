@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tahweela/core/referral_taxonomy.dart';
 import 'package:tahweela/data/models/medical_score_model.dart';
 import 'package:tahweela/data/models/referral_model.dart';
 
@@ -265,17 +264,22 @@ class ReferralsRepository {
     if (normalizedSpecialty.isEmpty) {
       return Stream.value(const <ReferralModel>[]);
     }
-    final query = _firestore
-        .collection('referrals')
-        .where('status', whereIn: ['approved', 'accepted']);
+    final query = _firestore.collection('referrals');
 
     return query.snapshots().map((snapshot) {
       final referrals = snapshot.docs
           .map((doc) => ReferralModel.fromFirestore(doc))
           .where((referral) {
-            if (normalizedSpecialty.isEmpty) return true;
-            return normalizeSpecialty(referral.assignedSpecialty) ==
-                normalizedSpecialty;
+            if (!_needsMedicalReview(referral.status)) return false;
+            final assignedSpecialty = normalizeSpecialty(
+              referral.assignedSpecialty,
+            );
+            final inferredSpecialty = specialtyForDiseaseType(
+              referral.diseaseType,
+            );
+
+            return assignedSpecialty == normalizedSpecialty ||
+                inferredSpecialty == normalizedSpecialty;
           })
           .toList();
 
@@ -290,133 +294,22 @@ class ReferralsRepository {
   }
 
   static String specialtyForDiseaseType(String diseaseType) {
-    switch (_cleanText(diseaseType)) {
-      case 'أمراض الجهاز الهضمي والبطن':
-      case 'أمراض الكبد والكلى والسكري':
-        return 'باطنية';
-      case 'إصابات العظام والمفاصل':
-        return 'جراحة عظام';
-      case 'أمراض القلب والأوعية الدموية':
-        return 'قلب وأوعية دموية';
-      case 'أمراض المخ والأعصاب':
-        return 'مخ وأعصاب';
-      case 'الأورام':
-        return 'أورام';
-      case 'أمراض الأطفال':
-        return 'أطفال';
-      case 'الحمل والولادة وصحة المرأة':
-        return 'نساء وتوليد';
-      case 'أمراض العيون':
-        return 'عيون';
-      case 'أمراض الأذن والأنف والحنجرة':
-        return 'أنف وأذن وحنجرة';
-      case 'الأمراض الجلدية':
-        return 'جلدية';
-      case 'الصحة النفسية':
-        return 'طب نفسي';
-      case 'حالات الطوارئ':
-        return 'طوارئ';
-      case 'حالات الجراحة العامة':
-        return 'جراحة عامة';
-      default:
-        return 'باطنية';
-    }
+    return ReferralTaxonomy.specialtyForDiseaseType(diseaseType);
   }
 
   static String normalizeSpecialty(String specialty) {
-    switch (_cleanText(specialty)) {
-      case 'الطب الباطني':
-      case 'باطنية':
-        return 'باطنية';
-      case 'طب القلب':
-      case 'قلب وأوعية دموية':
-        return 'قلب وأوعية دموية';
-      case 'طب الأعصاب':
-      case 'مخ وأعصاب':
-        return 'مخ وأعصاب';
-      case 'جراحة العظام':
-      case 'جراحة عظام':
-        return 'جراحة عظام';
-      case 'طب الأورام':
-      case 'أورام':
-        return 'أورام';
-      case 'طب الأطفال':
-      case 'أطفال':
-        return 'أطفال';
-      case 'طب النساء والتوليد':
-      case 'نساء وتوليد':
-        return 'نساء وتوليد';
-      case 'طب العيون':
-      case 'عيون':
-        return 'عيون';
-      case 'أذن وأنف وحنجرة':
-      case 'أنف وأذن وحنجرة':
-        return 'أنف وأذن وحنجرة';
-      case 'طب الجلدية':
-      case 'جلدية':
-        return 'جلدية';
-      case 'الطب النفسي':
-      case 'طب نفسي':
-        return 'طب نفسي';
-      case 'طب الطوارئ':
-      case 'طوارئ':
-        return 'طوارئ';
-      case 'الجراحة العامة':
-      case 'جراحة عامة':
-        return 'جراحة عامة';
+    return ReferralTaxonomy.normalizeSpecialty(specialty);
+  }
+
+  static bool _needsMedicalReview(String status) {
+    switch (status.trim().toLowerCase()) {
+      case 'reviewed':
+      case 'rejected':
+      case 'returned':
+      case 'closed':
+        return false;
       default:
-        return _cleanText(specialty);
+        return true;
     }
-  }
-
-  static String _cleanText(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return '';
-    try {
-      final repaired = utf8.decode(_windows1252Bytes(trimmed));
-      if (repaired.contains(RegExp(r'[\u0600-\u06FF]'))) {
-        return repaired.trim();
-      }
-    } catch (_) {
-      // Keep the original value when it is already valid UTF-8 text.
-    }
-    return trimmed;
-  }
-
-  static List<int> _windows1252Bytes(String value) {
-    const replacements = {
-      0x20AC: 0x80,
-      0x201A: 0x82,
-      0x0192: 0x83,
-      0x201E: 0x84,
-      0x2026: 0x85,
-      0x2020: 0x86,
-      0x2021: 0x87,
-      0x02C6: 0x88,
-      0x2030: 0x89,
-      0x0160: 0x8A,
-      0x2039: 0x8B,
-      0x0152: 0x8C,
-      0x017D: 0x8E,
-      0x2018: 0x91,
-      0x2019: 0x92,
-      0x201C: 0x93,
-      0x201D: 0x94,
-      0x2022: 0x95,
-      0x2013: 0x96,
-      0x2014: 0x97,
-      0x02DC: 0x98,
-      0x2122: 0x99,
-      0x0161: 0x9A,
-      0x203A: 0x9B,
-      0x0153: 0x9C,
-      0x017E: 0x9E,
-      0x0178: 0x9F,
-    };
-
-    return value.runes
-        .map((codePoint) => replacements[codePoint] ?? codePoint)
-        .where((codePoint) => codePoint >= 0 && codePoint <= 255)
-        .toList();
   }
 }

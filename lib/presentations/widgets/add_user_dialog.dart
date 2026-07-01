@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:tahweela/core/referral_taxonomy.dart';
 import 'package:tahweela/data/models/public_users.dart';
 import 'package:tahweela/data/repositories/auth_repository.dart';
 import 'package:tahweela/data/repositories/public_users_repository.dart';
@@ -19,27 +20,13 @@ class _AddUserDialogState extends State<AddUserDialog> {
   final _publicUsersRepository = PublicUsersRepository();
 
   String _selectedRole = 'patient';
-  String _selectedSpecialty = 'مخ وأعصاب';
+  String _selectedSpecialty = ReferralTaxonomy.specialties.first;
   PublicUserModel? _selectedPublicUser;
   bool _isLoading = false;
   bool _isSearching = false;
 
   static const _roles = ['patient', 'doctor', 'admin'];
-  static const _specialties = [
-    'مخ وأعصاب',
-    'قلب وأوعية دموية',
-    'جراحة عامة',
-    'جراحة عظام',
-    'أورام',
-    'باطنية',
-    'أطفال',
-    'نساء وتوليد',
-    'عيون',
-    'أنف وأذن وحنجرة',
-    'جلدية',
-    'طب نفسي',
-    'طوارئ',
-  ];
+  static const _specialties = ReferralTaxonomy.specialties;
 
   static const _roleLabels = {
     'admin': 'مدير النظام',
