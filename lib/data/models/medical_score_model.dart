@@ -4,6 +4,7 @@ class MedicalScoreModel {
   static const int maxCoreMedical = 40;
   static const int maxDelayImpact = 25;
   static const int maxTreatability = 20;
+  static const int minResourceAdjustment = -15;
   static const int maxResourceAdjustment = 15;
 
   final int coreMedical;
@@ -16,13 +17,13 @@ class MedicalScoreModel {
     required this.delayImpact,
     required this.treatability,
     required this.resourceAdjustment,
-  })  : assert(coreMedical >= 0 && coreMedical <= maxCoreMedical),
-        assert(delayImpact >= 0 && delayImpact <= maxDelayImpact),
-        assert(treatability >= 0 && treatability <= maxTreatability),
-        assert(
-          resourceAdjustment >= 0 &&
-              resourceAdjustment <= maxResourceAdjustment,
-        );
+  }) : assert(coreMedical >= 0 && coreMedical <= maxCoreMedical),
+       assert(delayImpact >= 0 && delayImpact <= maxDelayImpact),
+       assert(treatability >= 0 && treatability <= maxTreatability),
+       assert(
+         resourceAdjustment >= minResourceAdjustment &&
+             resourceAdjustment <= maxResourceAdjustment,
+       );
 
   factory MedicalScoreModel.empty() {
     return const MedicalScoreModel(
@@ -36,27 +37,25 @@ class MedicalScoreModel {
   factory MedicalScoreModel.fromMap(Map<String, dynamic>? data) {
     final scoreData = data ?? {};
     return MedicalScoreModel(
-      coreMedical: _readBoundedInt(
-        scoreData['coreMedical'],
-        maxCoreMedical,
-      ),
-      delayImpact: _readBoundedInt(
-        scoreData['delayImpact'],
-        maxDelayImpact,
-      ),
+      coreMedical: _readBoundedInt(scoreData['coreMedical'], 0, maxCoreMedical),
+      delayImpact: _readBoundedInt(scoreData['delayImpact'], 0, maxDelayImpact),
       treatability: _readBoundedInt(
         scoreData['treatability'],
+        0,
         maxTreatability,
       ),
       resourceAdjustment: _readBoundedInt(
         scoreData['resourceAdjustment'],
+        minResourceAdjustment,
         maxResourceAdjustment,
       ),
     );
   }
 
   int get total =>
-      coreMedical + delayImpact + treatability + resourceAdjustment;
+      (coreMedical + delayImpact + treatability + resourceAdjustment)
+          .clamp(0, 100)
+          .toInt();
 
   String get priorityLevel {
     if (total >= 90) return 'critical';
@@ -77,8 +76,8 @@ class MedicalScoreModel {
     };
   }
 
-  static int _readBoundedInt(dynamic value, int max) {
+  static int _readBoundedInt(dynamic value, int min, int max) {
     final parsed = value is int ? value : int.tryParse(value?.toString() ?? '');
-    return (parsed ?? 0).clamp(0, max).toInt();
+    return (parsed ?? 0).clamp(min, max).toInt();
   }
 }
