@@ -13,11 +13,43 @@ import 'package:tahweela/providers/providers.dart';
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
 
-class Admin extends ConsumerWidget {
+class Admin extends ConsumerStatefulWidget {
   const Admin({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Admin> createState() => _AdminState();
+}
+
+class _AdminState extends ConsumerState<Admin> {
+  String _totalReferrals = '0';
+  String _pendingReferrals = '0';
+  String _totalComplaints = '0';
+  String _pendingComplaints = '0';
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadCounts);
+  }
+
+  Future<void> _loadCounts() async {
+    final results = await Future.wait<int>([
+      ref.read(totalReferralsCountOnceProvider.future),
+      ref.read(pendingMedicalReviewCountOnceProvider.future),
+      ref.read(totalComplaintsCountOnceProvider.future),
+      ref.read(pendingComplaintsCountOnceProvider.future),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _totalReferrals = results[0].toString();
+      _pendingReferrals = results[1].toString();
+      _totalComplaints = results[2].toString();
+      _pendingComplaints = results[3].toString();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userName = ref
         .watch(userDataProvider)
         .when(
@@ -26,11 +58,6 @@ class Admin extends ConsumerWidget {
           loading: () => titleCard(title: 'مرحباً، مدير النظام'),
           error: (_, __) => titleCard(title: 'مرحباً، مدير النظام'),
         );
-
-    final totalComplaintsAsync = ref.watch(totalComplaintsCountProvider);
-    final pendingComplaintsAsync = ref.watch(pendingComplaintsCountProvider);
-    final totalReferralsAsync = ref.watch(totalReferralsCountProvider);
-    final pendingReferralsAsync = ref.watch(pendingReferralsCountProvider);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -52,11 +79,7 @@ class Admin extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: SecoundCard(
-                              value: totalReferralsAsync.when(
-                                data: (count) => count.toString(),
-                                loading: () => '...',
-                                error: (error, stackTrace) => '0',
-                              ),
+                              value: _totalReferrals,
                               color: Colors.blueAccent,
                               lableText: 'إجمالي الحالات',
                             ),
@@ -64,11 +87,7 @@ class Admin extends ConsumerWidget {
                           const SizedBox(width: 14),
                           Expanded(
                             child: SecoundCard(
-                              value: pendingReferralsAsync.when(
-                                data: (count) => count.toString(),
-                                loading: () => '...',
-                                error: (error, stackTrace) => '0',
-                              ),
+                              value: _pendingReferrals,
                               color: Colors.green,
                               lableText: 'بانتظار M المراجعة',
                             ),
@@ -80,11 +99,7 @@ class Admin extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: SecoundCard(
-                              value: totalComplaintsAsync.when(
-                                data: (count) => count.toString(),
-                                loading: () => '...',
-                                error: (error, stackTrace) => '0',
-                              ),
+                              value: _totalComplaints,
                               color: Colors.red,
                               lableText: 'شكاوى',
                             ),
@@ -92,11 +107,7 @@ class Admin extends ConsumerWidget {
                           const SizedBox(width: 14),
                           Expanded(
                             child: SecoundCard(
-                              value: pendingComplaintsAsync.when(
-                                data: (count) => count.toString(),
-                                loading: () => '...',
-                                error: (error, stackTrace) => '0',
-                              ),
+                              value: _pendingComplaints,
                               color: const Color(0xffF59E0B),
                               lableText: 'قيد الانتظار',
                             ),
@@ -154,7 +165,7 @@ class Admin extends ConsumerWidget {
 class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(userNotificationsProvider);
+    final notificationsAsync = ref.watch(userNotificationsOnceProvider);
 
     return Container(
       height: 86,

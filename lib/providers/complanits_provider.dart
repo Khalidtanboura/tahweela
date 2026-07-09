@@ -75,6 +75,14 @@ final totalComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
       .map((snapshot) => snapshot.docs.length);
 });
 
+final totalComplaintsCountOnceProvider = FutureProvider.autoDispose<int>((ref) {
+  return FirebaseFirestore.instance
+      .collection('complaints')
+      .snapshots()
+      .map((snapshot) => snapshot.docs.length)
+      .first;
+});
+
 // مزود لجلب عدد الشكاوى "قيد الانتظار" فقط بالوقت الفعلي
 final pendingComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
   return FirebaseFirestore.instance
@@ -82,6 +90,17 @@ final pendingComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
       .where('status', isEqualTo: 'pending')
       .snapshots()
       .map((snapshot) => snapshot.docs.length);
+});
+
+final pendingComplaintsCountOnceProvider = FutureProvider.autoDispose<int>((
+  ref,
+) {
+  return FirebaseFirestore.instance
+      .collection('complaints')
+      .where('status', isEqualTo: 'pending')
+      .snapshots()
+      .map((snapshot) => snapshot.docs.length)
+      .first;
 });
 
 // مزود ذكي يستقبل الـ userId ويعيد فقط الشكاوي الخاصة بهذا المستخدم

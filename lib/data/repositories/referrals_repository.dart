@@ -159,21 +159,84 @@ class ReferralsRepository {
     required List<Map<String, dynamic>> answers,
     String notes = '',
   }) async {
-    await _firestore.collection('referrals').doc(referralId).update({
-      'status': 'reviewed',
-      'medicalScore': score.toMap(),
+    final referralRef = _firestore.collection('referrals').doc(referralId);
+    final snapshot = await referralRef.get();
+    final data = snapshot.data() ?? {};
+    final rawReviews = data['medicalReviews'] as Map<String, dynamic>? ?? {};
+
+    if (rawReviews.containsKey(reviewerId)) {
+      throw Exception('تم تقييم هذه الحالة من قبلك مسبقا');
+    }
+
+    final reviewData = {
+      'reviewerId': reviewerId,
+      'reviewerName': reviewerName,
+      'score': score.toMap(),
       'totalScore': score.total,
       'priorityLevel': score.priorityLevel,
-      'medicalReview': {
-        'reviewerId': reviewerId,
-        'reviewerName': reviewerName,
-        'answers': answers,
-        'notes': notes,
-        'reviewedAt': FieldValue.serverTimestamp(),
-      },
+      'answers': answers,
+      'notes': notes,
       'reviewedAt': FieldValue.serverTimestamp(),
+    };
+    final completedReviewCount = rawReviews.length + 1;
+
+    final updateData = <String, dynamic>{
+      'status': completedReviewCount >= 3
+          ? _finalStatusForScore(
+              _averageScore([...rawReviews.values, reviewData]),
+            )
+          : 'under_medical_review',
+      'medicalReviews.$reviewerId': reviewData,
+      'medicalReviewCount': completedReviewCount,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (completedReviewCount >= 3) {
+      final averageTotal = _averageScore([...rawReviews.values, reviewData]);
+      final finalScore = _scoreFromReviews([...rawReviews.values, reviewData]);
+      final finalStatus = _finalStatusForScore(averageTotal);
+
+      updateData.addAll({
+        'medicalScore': finalScore.toMap(),
+        'totalScore': finalScore.total,
+        'averageMedicalScore': averageTotal,
+        'priorityLevel': finalScore.priorityLevel,
+        'finalMedicalDecision': finalStatus,
+        'reviewedAt': FieldValue.serverTimestamp(),
+        'finalReviewedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await referralRef.update(updateData);
+
+    if (completedReviewCount >= 3) {
+      final finalStatus = updateData['finalMedicalDecision']?.toString() ?? '';
+      final patientUid = data['patientId']?.toString() ?? '';
+      final patientName = data['patientName']?.toString() ?? '';
+      final statusText = finalStatus == 'accepted' ? 'قبول' : 'رفض';
+      final totalScore = updateData['totalScore']?.toString() ?? '0';
+
+      if (patientUid.isNotEmpty) {
+        await _notificationsRepo.sendNotificationToPatient(
+          patientUid: patientUid,
+          title: 'تم إصدار نتيجة تقييم حالتك',
+          body:
+              'تم $statusText الحالة بعد اكتمال تقييم 3 أطباء. النتيجة النهائية: $totalScore/100.',
+          type: 'system_alert',
+          relatedId: referralId,
+          routeName: 'casePatient',
+        );
+      }
+
+      await _notificationsRepo.sendNotificationToAdmin(
+        title: 'اكتمل تقييم حالة طبية',
+        body:
+            'اكتمل تقييم حالة ${patientName.isEmpty ? 'مريض' : patientName} من 3 أطباء، والقرار النهائي: $statusText.',
+        type: 'system_alert',
+        relatedId: referralId,
+        routeName: 'casesList',
+      );
+    }
   }
 
   Future<String> _ensurePatientUid(
@@ -243,6 +306,26 @@ class ReferralsRepository {
     );
   }
 
+  Future<List<ReferralModel>> fetchReferralModels({
+    required String role,
+    String? uid,
+  }) async {
+    Query query = _firestore
+        .collection('referrals')
+        .orderBy('createdAt', descending: true);
+
+    if (role == 'doctor' && uid != null) {
+      query = query.where('doctorId', isEqualTo: uid);
+    } else if (role == 'patient' && uid != null) {
+      query = query.where('patientId', isEqualTo: uid);
+    }
+
+    final snapshot = await query.get();
+    return snapshot.docs
+        .map((doc) => ReferralModel.fromFirestore(doc))
+        .toList();
+  }
+
   Stream<QuerySnapshot> streamReferrals({required String role, String? uid}) {
     Query query = _firestore
         .collection('referrals')
@@ -259,6 +342,7 @@ class ReferralsRepository {
 
   Stream<List<ReferralModel>> streamMedicalReviewReferrals({
     String? specialty,
+    String? reviewerId,
   }) {
     final normalizedSpecialty = normalizeSpecialty(specialty ?? '');
     if (normalizedSpecialty.isEmpty) {
@@ -271,6 +355,14 @@ class ReferralsRepository {
           .map((doc) => ReferralModel.fromFirestore(doc))
           .where((referral) {
             if (!_needsMedicalReview(referral.status)) return false;
+            if (reviewerId != null && reviewerId.isNotEmpty) {
+              final data = snapshot.docs
+                  .firstWhere((doc) => doc.id == referral.id)
+                  .data();
+              final reviews =
+                  data['medicalReviews'] as Map<String, dynamic>? ?? {};
+              if (reviews.containsKey(reviewerId)) return false;
+            }
             final assignedSpecialty = normalizeSpecialty(
               referral.assignedSpecialty,
             );
@@ -293,6 +385,48 @@ class ReferralsRepository {
     });
   }
 
+  Future<List<ReferralModel>> fetchMedicalReviewReferrals({
+    String? specialty,
+    String? reviewerId,
+  }) async {
+    final normalizedSpecialty = normalizeSpecialty(specialty ?? '');
+    if (normalizedSpecialty.isEmpty) {
+      return const <ReferralModel>[];
+    }
+
+    final snapshot = await _firestore.collection('referrals').get();
+    final referrals = snapshot.docs
+        .map((doc) => ReferralModel.fromFirestore(doc))
+        .where((referral) {
+          if (!_needsMedicalReview(referral.status)) return false;
+          if (reviewerId != null && reviewerId.isNotEmpty) {
+            final data = snapshot.docs
+                .firstWhere((doc) => doc.id == referral.id)
+                .data();
+            final reviews = data['medicalReviews'] as Map<String, dynamic>? ?? {};
+            if (reviews.containsKey(reviewerId)) return false;
+          }
+          final assignedSpecialty = normalizeSpecialty(
+            referral.assignedSpecialty,
+          );
+          final inferredSpecialty = specialtyForDiseaseType(
+            referral.diseaseType,
+          );
+
+          return assignedSpecialty == normalizedSpecialty ||
+              inferredSpecialty == normalizedSpecialty;
+        })
+        .toList();
+
+    referrals.sort((a, b) {
+      final aDate = a.updatedAt ?? a.createdAt ?? DateTime(0);
+      final bDate = b.updatedAt ?? b.createdAt ?? DateTime(0);
+      return bDate.compareTo(aDate);
+    });
+
+    return referrals;
+  }
+
   static String specialtyForDiseaseType(String diseaseType) {
     return ReferralTaxonomy.specialtyForDiseaseType(diseaseType);
   }
@@ -304,6 +438,7 @@ class ReferralsRepository {
   static bool _needsMedicalReview(String status) {
     switch (status.trim().toLowerCase()) {
       case 'reviewed':
+      case 'accepted':
       case 'rejected':
       case 'returned':
       case 'closed':
@@ -311,5 +446,52 @@ class ReferralsRepository {
       default:
         return true;
     }
+  }
+
+  static int _averageScore(List<dynamic> reviews) {
+    if (reviews.isEmpty) return 0;
+    final total = reviews.fold<int>(0, (runningTotal, review) {
+      if (review is! Map) return runningTotal;
+      final value = review['totalScore'];
+      return runningTotal +
+          (value is int ? value : int.tryParse('$value') ?? 0);
+    });
+    return (total / reviews.length).round().clamp(0, 100).toInt();
+  }
+
+  static MedicalScoreModel _scoreFromReviews(List<dynamic> reviews) {
+    if (reviews.isEmpty) return MedicalScoreModel.empty();
+
+    int averageField(String key) {
+      final total = reviews.fold<int>(0, (runningTotal, review) {
+        if (review is! Map) return runningTotal;
+        final score = review['score'];
+        if (score is! Map) return runningTotal;
+        final value = score[key];
+        return runningTotal +
+            (value is int ? value : int.tryParse('$value') ?? 0);
+      });
+      return (total / reviews.length).round();
+    }
+
+    return MedicalScoreModel(
+      coreMedical: averageField(
+        'coreMedical',
+      ).clamp(0, MedicalScoreModel.maxCoreMedical),
+      delayImpact: averageField(
+        'delayImpact',
+      ).clamp(0, MedicalScoreModel.maxDelayImpact),
+      treatability: averageField(
+        'treatability',
+      ).clamp(0, MedicalScoreModel.maxTreatability),
+      resourceAdjustment: averageField('resourceAdjustment').clamp(
+        MedicalScoreModel.minResourceAdjustment,
+        MedicalScoreModel.maxResourceAdjustment,
+      ),
+    );
+  }
+
+  static String _finalStatusForScore(int score) {
+    return score >= 50 ? 'accepted' : 'rejected';
   }
 }

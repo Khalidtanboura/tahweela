@@ -10,12 +10,39 @@ import 'package:tahweela/presentations/widgets/card.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
+import 'package:tahweela/providers/providers.dart';
 
-class Doctor extends ConsumerWidget {
+class Doctor extends ConsumerStatefulWidget {
   const Doctor({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Doctor> createState() => _DoctorState();
+}
+
+class _DoctorState extends ConsumerState<Doctor> {
+  String _totalCases = '0';
+  String _waitingReview = '0';
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadCounts);
+  }
+
+  Future<void> _loadCounts() async {
+    final results = await Future.wait<int>([
+      ref.read(doctorSpecialtyReferralsCountOnceProvider.future),
+      ref.read(doctorPendingMedicalReviewCountOnceProvider.future),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _totalCases = results[0].toString();
+      _waitingReview = results[1].toString();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userName = ref
         .watch(userDataProvider)
         .when(
@@ -44,7 +71,7 @@ class Doctor extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: SecoundCard(
-                              value: '1',
+                              value: _totalCases,
                               color: Colors.blueAccent,
                               lableText: 'إجمالي الحالات',
                             ),
@@ -52,7 +79,7 @@ class Doctor extends ConsumerWidget {
                           const SizedBox(width: 14),
                           Expanded(
                             child: SecoundCard(
-                              value: '3',
+                              value: _waitingReview,
                               color: const Color(0xffF59E0B),
                               lableText: 'بانتظار المراجعة',
                             ),
@@ -126,7 +153,7 @@ class _DoctorHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(userNotificationsProvider);
+    final notificationsAsync = ref.watch(userNotificationsOnceProvider);
 
     return Container(
       height: 86,

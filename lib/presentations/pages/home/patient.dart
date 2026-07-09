@@ -7,6 +7,7 @@ import 'package:tahweela/presentations/pages/complaints/user_complaints_page.dar
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
+import 'package:tahweela/providers/providers.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
@@ -26,6 +27,13 @@ class Patient extends ConsumerWidget {
           loading: () => titleCard(title: 'مرحباً، المريض'),
           error: (_, __) => titleCard(title: 'مرحباً، المريض'),
         );
+    final acceptedReferralsAsync = ref.watch(
+      patientAcceptedReferralsCountOnceProvider,
+    );
+    final rejectedReferralsAsync = ref.watch(
+      patientRejectedReferralsCountOnceProvider,
+    );
+
     return Scaffold(
       backgroundColor: Color(0xffF8FAFC),
       body: SafeArea(
@@ -49,7 +57,7 @@ class Patient extends ConsumerWidget {
                       Consumer(
                         builder: (context, ref, child) {
                           final notificationsAsync = ref.watch(
-                            userNotificationsProvider,
+                            userNotificationsOnceProvider,
                           );
                           return notificationsAsync.when(
                             data: (list) {
@@ -97,7 +105,11 @@ class Patient extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: SecoundCard(
-                            value: '1',
+                            value: acceptedReferralsAsync.when(
+                              data: (count) => count.toString(),
+                              loading: () => '...',
+                              error: (error, stackTrace) => '0',
+                            ),
                             color: Colors.green,
                             lableText: 'المقبولة',
                           ),
@@ -105,7 +117,11 @@ class Patient extends ConsumerWidget {
                         const SizedBox(width: 14),
                         Expanded(
                           child: SecoundCard(
-                            value: '1',
+                            value: rejectedReferralsAsync.when(
+                              data: (count) => count.toString(),
+                              loading: () => '...',
+                              error: (error, stackTrace) => '0',
+                            ),
                             color: Colors.blue,
                             lableText: 'المرفوضة',
                           ),

@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,12 +27,24 @@ import 'package:tahweela/presentations/pages/referral/new_referral.dart';
 import 'package:tahweela/presentations/pages/referral/secound_referral.dart';
 import 'package:tahweela/presentations/pages/usermanagment.dart';
 import 'package:tahweela/providers/auth_provider.dart';
+import 'package:tahweela/providers/notifications_provider.dart';
 import 'core/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await _configureFirebaseMessaging();
   runApp(const ProviderScope(child: MyApp()));
+}
+
+Future<void> _configureFirebaseMessaging() async {
+  final messaging = FirebaseMessaging.instance;
+  await messaging.requestPermission(alert: true, badge: true, sound: true);
+  await messaging.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
 }
 
 class MyApp extends ConsumerWidget {
@@ -39,6 +52,8 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(deviceMessagingProvider);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tahweela app',

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:tahweela/data/repositories/notifications_repository.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
 import 'package:tahweela/presentations/widgets/text.dart';
-
 
 class ComplaintsState extends StatefulWidget {
   final String complaintId;
@@ -71,17 +71,44 @@ class _ComplaintsStateState extends State<ComplaintsState> {
           .collection('complaints')
           .doc(widget.complaintId)
           .update({
-        'status': newStatus,
-        'replyText': _replyController.text.trim(),
-      });
+            'status': newStatus,
+            'replyText': _replyController.text.trim(),
+          });
+      final userId = widget.complaintData['userId']?.toString() ?? '';
+      final userRole = widget.complaintData['userRole']?.toString() ?? '';
+      final replyText = _replyController.text.trim();
+      final statusText = newStatus == 'accepted' ? 'قبول' : 'رفض';
+      final notificationsRepo = NotificationsRepository();
+
+      if (userId.isNotEmpty && userRole == 'doctor') {
+        await notificationsRepo.sendNotificationToDoctor(
+          doctorUid: userId,
+          title: 'تم تحديث حالة شكواك',
+          body: 'تم $statusText الشكوى. رد الإدارة: $replyText',
+          type: 'complaint_update',
+          relatedId: widget.complaintId,
+          routeName: 'complaintsDoctorCase',
+        );
+      } else if (userId.isNotEmpty) {
+        await notificationsRepo.sendNotificationToPatient(
+          patientUid: userId,
+          title: 'تم تحديث حالة شكواك',
+          body: 'تم $statusText الشكوى. رد الإدارة: $replyText',
+          type: 'complaint_update',
+          relatedId: widget.complaintId,
+          routeName: 'complaintsPatientCase',
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                newStatus == 'accepted' ? 'تم قبول الشكوى ✅' : 'تم رفض الشكوى ❌'),
-            backgroundColor:
-                newStatus == 'accepted' ? Colors.green : Colors.red,
+              newStatus == 'accepted' ? 'تم قبول الشكوى ✅' : 'تم رفض الشكوى ❌',
+            ),
+            backgroundColor: newStatus == 'accepted'
+                ? Colors.green
+                : Colors.red,
           ),
         );
         Navigator.pop(context);
@@ -145,7 +172,9 @@ class _ComplaintsStateState extends State<ComplaintsState> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 8),
+                                    horizontal: 20,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: _getStatusColor(status),
                                     borderRadius: BorderRadius.circular(25),
@@ -175,7 +204,9 @@ class _ComplaintsStateState extends State<ComplaintsState> {
                               child: Text(
                                 data['userRole'] == 'doctor' ? 'طبيب' : 'مريض',
                                 style: const TextStyle(
-                                    color: Colors.grey, fontSize: 14),
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                           ],
