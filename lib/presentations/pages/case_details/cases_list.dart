@@ -3,26 +3,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tahweela/data/models/referral_model.dart';
 import 'package:tahweela/presentations/pages/case_details/case_review.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
+import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/providers.dart';
 
-class CasesList extends ConsumerWidget {
+class CasesList extends ConsumerStatefulWidget {
   const CasesList({super.key, this.mode = CasesListMode.admin});
 
   final CasesListMode mode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final referralsAsync = switch (mode) {
-      CasesListMode.medicalReview => ref.watch(medicalReviewReferralsProvider),
-      CasesListMode.patient => ref.watch(patientReferralsProvider),
-      CasesListMode.admin => ref.watch(adminReferralsProvider),
-    };
-    final title = switch (mode) {
+  ConsumerState<CasesList> createState() => _CasesListState();
+}
+
+class _CasesListState extends ConsumerState<CasesList> {
+  late final Future<List<ReferralModel>> _referralsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _referralsFuture = _loadReferrals();
+  }
+
+  Future<List<ReferralModel>> _loadReferrals() async {
+    final repo = ref.read(referralsRepositoryProvider);
+
+    switch (widget.mode) {
+      case CasesListMode.medicalReview:
+        final user = await ref.read(userDataProvider.future);
+        return repo.fetchMedicalReviewReferrals(
+          specialty: user?.specialty,
+          reviewerId: user?.uid,
+        );
+      case CasesListMode.patient:
+        final user = await ref.read(userDataProvider.future);
+        if (user == null) return const <ReferralModel>[];
+        return repo.fetchReferralModels(role: 'patient', uid: user.uid);
+      case CasesListMode.admin:
+        return repo.fetchReferralModels(role: 'admin');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = switch (widget.mode) {
       CasesListMode.medicalReview => 'مراجعة الحالات',
       CasesListMode.patient => 'طلباتي',
       CasesListMode.admin => 'جميع الحالات',
     };
-    final emptyMessage = switch (mode) {
+    final emptyMessage = switch (widget.mode) {
       CasesListMode.medicalReview =>
         'لا توجد حالات ضمن اختصاصك بانتظار التقييم حاليا',
       CasesListMode.patient => 'لا توجد طلبات حتى الآن',
@@ -45,8 +73,29 @@ class CasesList extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: referralsAsync.when(
-                    data: (referrals) {
+                  child: FutureBuilder<List<ReferralModel>>(
+                    future: _referralsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF16A34A),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Failed to load referrals: ${snapshot.error}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+
+                      final referrals =
+                          snapshot.data ?? const <ReferralModel>[];
                       if (referrals.isEmpty) {
                         return Center(
                           child: Text(
@@ -63,23 +112,11 @@ class CasesList extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           return _ReferralCard(
                             referral: referrals[index],
-                            mode: mode,
+                            mode: widget.mode,
                           );
                         },
                       );
                     },
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                    error: (error, _) => Center(
-                      child: Text(
-                        'Failed to load referrals: $error',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
                   ),
                 ),
               ],

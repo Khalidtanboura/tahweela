@@ -1,30 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:tahweela/data/models/notification_model.dart';
+import 'package:tahweela/data/models/user_model.dart';
+import 'package:tahweela/data/repositories/referrals_repository.dart';
 import '../../providers/notifications_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'case_details/cases_list.dart';
 import '../widgets/card.dart';
 
-class NotificationPage extends ConsumerWidget {
+class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 1. قراءة بيانات المستخدم لمعرفة تخصيص العنوان
-    final userState = ref.watch(userDataProvider);
-    // 2. مراقبة تدفق الإشعارات المخصصة له
-    final notificationsState = ref.watch(userNotificationsProvider);
+  ConsumerState<NotificationPage> createState() => _NotificationPageState();
+}
 
-    String pageTitle = 'الإشعارات';
-    userState.whenData((user) {
-      if (user != null) {
-        if (user.role == 'admin') pageTitle = 'تنبيهات إدارة النظام';
-        if (user.role == 'doctor') pageTitle = 'إشعارات العيادة الطبية';
-        if (user.role == 'patient') pageTitle = 'إشعاراتي الصحية';
-      }
-    });
+class _NotificationPageState extends ConsumerState<NotificationPage> {
+  late final Future<List<NotificationModel>> _notificationsFuture;
+  UserModel? _user;
+  String _pageTitle = 'الإشعارات';
 
+  @override
+  void initState() {
+    super.initState();
+    _notificationsFuture = _loadNotifications();
+  }
+
+  Future<List<NotificationModel>> _loadNotifications() async {
+    final user = await ref.read(userDataProvider.future);
+    _user = user;
+
+    if (mounted && user != null) {
+      setState(() {
+        _pageTitle = switch (user.role) {
+          'admin' => 'تنبيهات إدارة النظام',
+          'doctor' => 'إشعارات العيادة الطبية',
+          'patient' => 'إشعاراتي الصحية',
+          _ => 'الإشعارات',
+        };
+      });
+    }
+
+    if (user == null) return const <NotificationModel>[];
+    return ref
+        .read(notificationsRepositoryProvider)
+        .fetchNotifications(
+          role: user.role,
+          uid: user.uid,
+          specialty: ReferralsRepository.normalizeSpecialty(
+            user.specialty ?? '',
+          ),
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
       body: SafeArea(
@@ -35,13 +66,32 @@ class NotificationPage extends ConsumerWidget {
               // استخدام الـ Appbar Card الموحد لديك في المشروع
               secoundAppbarCard(
                 icon1: Icons.reply,
-                title: pageTitle,
+                title: _pageTitle,
                 context: context,
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: notificationsState.when(
-                  data: (notifications) {
+                child: FutureBuilder<List<NotificationModel>>(
+                  future: _notificationsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF16A34A),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'حدث خطأ أثناء جلب التنبيهات: ${snapshot.error}',
+                        ),
+                      );
+                    }
+
+                    final notifications =
+                        snapshot.data ?? const <NotificationModel>[];
                     if (notifications.isEmpty) {
                       return Center(
                         child: Column(
@@ -85,7 +135,7 @@ class NotificationPage extends ConsumerWidget {
                                 .markAsRead(item.id);
                             final routeName = item.routeName;
                             if (routeName != null && routeName.isNotEmpty) {
-                              final user = userState.value;
+                              final user = _user;
                               if (routeName == 'casesList' &&
                                   user?.role == 'doctor') {
                                 Navigator.push(
@@ -215,12 +265,6 @@ class NotificationPage extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF16A34A)),
-                  ),
-                  error: (error, stack) => Center(
-                    child: Text('حدث خطأ أثناء جلب التنبيهات: $error'),
-                  ),
                 ),
               ),
             ],

@@ -8,6 +8,8 @@ import 'package:tahweela/presentations/pages/referral/new_referral.dart';
 import 'package:tahweela/presentations/widgets/buttons.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
+import 'package:tahweela/data/models/referral_model.dart';
+import 'package:tahweela/data/repositories/referrals_repository.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
 import 'package:tahweela/providers/providers.dart';
@@ -22,6 +24,7 @@ class Doctor extends ConsumerStatefulWidget {
 class _DoctorState extends ConsumerState<Doctor> {
   String _totalCases = '0';
   String _waitingReview = '0';
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
@@ -30,14 +33,45 @@ class _DoctorState extends ConsumerState<Doctor> {
   }
 
   Future<void> _loadCounts() async {
-    final results = await Future.wait<int>([
-      ref.read(doctorSpecialtyReferralsCountOnceProvider.future),
-      ref.read(doctorPendingMedicalReviewCountOnceProvider.future),
-    ]);
+    final user = await ref.read(userDataProvider.future);
+    final repo = ref.read(referralsRepositoryProvider);
+    final specialty = ReferralsRepository.normalizeSpecialty(
+      user?.specialty ?? '',
+    );
+    final allReferrals = specialty.isEmpty
+        ? const <ReferralModel>[]
+        : await repo.fetchReferralModels(role: 'admin');
+    final reviewReferrals = await repo.fetchMedicalReviewReferrals(
+      specialty: user?.specialty,
+      reviewerId: user?.uid,
+    );
+    final notifications = user == null
+        ? const []
+        : await ref
+              .read(notificationsRepositoryProvider)
+              .fetchNotifications(
+                role: user.role,
+                uid: user.uid,
+                specialty: ReferralsRepository.normalizeSpecialty(
+                  user.specialty ?? '',
+                ),
+              );
     if (!mounted) return;
     setState(() {
-      _totalCases = results[0].toString();
-      _waitingReview = results[1].toString();
+      _totalCases = allReferrals
+          .where((item) {
+            final assigned = ReferralsRepository.normalizeSpecialty(
+              item.assignedSpecialty,
+            );
+            final inferred = ReferralsRepository.specialtyForDiseaseType(
+              item.diseaseType,
+            );
+            return assigned == specialty || inferred == specialty;
+          })
+          .length
+          .toString();
+      _waitingReview = reviewReferrals.length.toString();
+      _unreadNotifications = notifications.where((item) => !item.isRead).length;
     });
   }
 
@@ -60,7 +94,7 @@ class _DoctorState extends ConsumerState<Doctor> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Column(
               children: [
-                const _DoctorHeader(),
+                _DoctorHeader(unreadCount: _unreadNotifications),
                 Expanded(
                   child: ListView(
                     children: [
@@ -148,13 +182,13 @@ class _DoctorState extends ConsumerState<Doctor> {
   }
 }
 
-class _DoctorHeader extends ConsumerWidget {
-  const _DoctorHeader();
+class _DoctorHeader extends StatelessWidget {
+  const _DoctorHeader({required this.unreadCount});
+
+  final int unreadCount;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(userNotificationsOnceProvider);
-
+  Widget build(BuildContext context) {
     return Container(
       height: 86,
       width: double.infinity,
@@ -168,14 +202,7 @@ class _DoctorHeader extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            notificationsAsync.when(
-              data: (list) {
-                final unreadCount = list.where((item) => !item.isRead).length;
-                return buildNotificationBell(context, unreadCount);
-              },
-              loading: () => const SizedBox(),
-              error: (error, stackTrace) => const SizedBox(),
-            ),
+            buildNotificationBell(context, unreadCount),
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(

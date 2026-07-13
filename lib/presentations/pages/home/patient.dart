@@ -1,39 +1,76 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tahweela/presentations/pages/complaints/complaints.dart';
-import 'package:tahweela/presentations/pages/complaints/complaints_patient_case.dart';
-import 'package:tahweela/presentations/pages/complaints/complaints_view.dart';
 import 'package:tahweela/presentations/pages/complaints/user_complaints_page.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
+import 'package:tahweela/data/repositories/referrals_repository.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
 import 'package:tahweela/providers/providers.dart';
 
 import '../../widgets/buttons.dart';
 import '../../widgets/card.dart';
-import '../notification.dart';
 import '../profile.dart';
 import '../case_details/cases_list.dart';
 
-class Patient extends ConsumerWidget {
+class Patient extends ConsumerStatefulWidget {
   const Patient({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Patient> createState() => _PatientState();
+}
+
+class _PatientState extends ConsumerState<Patient> {
+  String _acceptedReferrals = '0';
+  String _rejectedReferrals = '0';
+  int _unreadNotifications = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadHomeData);
+  }
+
+  Future<void> _loadHomeData() async {
+    final user = await ref.read(userDataProvider.future);
+    if (user == null) return;
+
+    final referrals = await ref
+        .read(referralsRepositoryProvider)
+        .fetchReferralModels(role: 'patient', uid: user.uid);
+    final notifications = await ref
+        .read(notificationsRepositoryProvider)
+        .fetchNotifications(
+          role: user.role,
+          uid: user.uid,
+          specialty: ReferralsRepository.normalizeSpecialty(
+            user.specialty ?? '',
+          ),
+        );
+
+    if (!mounted) return;
+    setState(() {
+      _acceptedReferrals = referrals
+          .where((item) => item.status == 'accepted')
+          .length
+          .toString();
+      _rejectedReferrals = referrals
+          .where((item) => item.status == 'rejected')
+          .length
+          .toString();
+      _unreadNotifications = notifications.where((item) => !item.isRead).length;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userName = ref
         .watch(userDataProvider)
         .when(
-          data: (user) => titleCard(title: 'مرحباً، ${user!.name ?? 'المريض'}'),
+          data: (user) => titleCard(title: 'مرحباً، ${user?.name ?? 'المريض'}'),
           loading: () => titleCard(title: 'مرحباً، المريض'),
           error: (_, __) => titleCard(title: 'مرحباً، المريض'),
         );
-    final acceptedReferralsAsync = ref.watch(
-      patientAcceptedReferralsCountOnceProvider,
-    );
-    final rejectedReferralsAsync = ref.watch(
-      patientRejectedReferralsCountOnceProvider,
-    );
-
     return Scaffold(
       backgroundColor: Color(0xffF8FAFC),
       body: SafeArea(
@@ -54,26 +91,7 @@ class Patient extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final notificationsAsync = ref.watch(
-                            userNotificationsOnceProvider,
-                          );
-                          return notificationsAsync.when(
-                            data: (list) {
-                              final unreadCount = list
-                                  .where((n) => !n.isRead)
-                                  .length;
-                              return buildNotificationBell(
-                                context,
-                                unreadCount,
-                              );
-                            },
-                            loading: () => const SizedBox(),
-                            error: (_, __) => const SizedBox(),
-                          );
-                        },
-                      ),
+                      buildNotificationBell(context, _unreadNotifications),
                       const SizedBox(width: 8),
                       IconButton(
                         icon: const Icon(
@@ -105,11 +123,7 @@ class Patient extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: SecoundCard(
-                            value: acceptedReferralsAsync.when(
-                              data: (count) => count.toString(),
-                              loading: () => '...',
-                              error: (error, stackTrace) => '0',
-                            ),
+                            value: _acceptedReferrals,
                             color: Colors.green,
                             lableText: 'المقبولة',
                           ),
@@ -117,11 +131,7 @@ class Patient extends ConsumerWidget {
                         const SizedBox(width: 14),
                         Expanded(
                           child: SecoundCard(
-                            value: rejectedReferralsAsync.when(
-                              data: (count) => count.toString(),
-                              loading: () => '...',
-                              error: (error, stackTrace) => '0',
-                            ),
+                            value: _rejectedReferrals,
                             color: Colors.blue,
                             lableText: 'المرفوضة',
                           ),

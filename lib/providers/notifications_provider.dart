@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:tahweela/data/models/notification_model.dart';
 import 'package:tahweela/data/repositories/notifications_repository.dart';
@@ -42,15 +43,11 @@ final userNotificationsOnceProvider = FutureProvider<List<NotificationModel>>((
   return authState.when(
     data: (user) {
       if (user == null) return Future.value([]);
-      return repo
-          .streamNotifications(
-            role: user.role,
-            uid: user.uid,
-            specialty: ReferralsRepository.normalizeSpecialty(
-              user.specialty ?? '',
-            ),
-          )
-          .first;
+      return repo.fetchNotifications(
+        role: user.role,
+        uid: user.uid,
+        specialty: ReferralsRepository.normalizeSpecialty(user.specialty ?? ''),
+      );
     },
     loading: () => Future.value([]),
     error: (_, __) => Future.value([]),
@@ -58,22 +55,32 @@ final userNotificationsOnceProvider = FutureProvider<List<NotificationModel>>((
 });
 
 final deviceMessagingProvider = Provider<void>((ref) {
-  final user = ref.watch(userDataProvider).value;
+  final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
   final messaging = FirebaseMessaging.instance;
   final firestore = FirebaseFirestore.instance;
+  final userRef = firestore.collection('users').doc(user.uid);
 
   Future<void> saveToken(String? token) async {
     if (token == null || token.isEmpty) return;
-    await firestore.collection('users').doc(user.uid).set({
+
+    final snapshot = await userRef.get();
+    final data = snapshot.data();
+    final currentToken = data?['fcmToken']?.toString();
+    final tokens = data?['fcmTokens'];
+    final tokenAlreadySaved =
+        currentToken == token || (tokens is List && tokens.contains(token));
+
+    if (tokenAlreadySaved) return;
+
+    await userRef.set({
       'fcmToken': token,
       'fcmTokens': FieldValue.arrayUnion([token]),
-      'lastFcmTokenUpdatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
-  messaging.getToken().then(saveToken);
+  messaging.getToken().then(saveToken).catchError((_) {});
   final subscription = messaging.onTokenRefresh.listen(saveToken);
   ref.onDispose(subscription.cancel);
 });

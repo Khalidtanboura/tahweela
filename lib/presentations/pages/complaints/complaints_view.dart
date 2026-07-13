@@ -12,6 +12,28 @@ class ComplaintsView extends StatefulWidget {
 
 class _ComplaintsViewState extends State<ComplaintsView> {
   bool _showPatients = true;
+  late Future<QuerySnapshot> _complaintsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _complaintsFuture = _fetchComplaints();
+  }
+
+  Future<QuerySnapshot> _fetchComplaints() {
+    return FirebaseFirestore.instance
+        .collection('complaints')
+        .where('userRole', isEqualTo: _showPatients ? 'patient' : 'doctor')
+        .get();
+  }
+
+  void _setRoleFilter(bool showPatients) {
+    if (_showPatients == showPatients) return;
+    setState(() {
+      _showPatients = showPatients;
+      _complaintsFuture = _fetchComplaints();
+    });
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -65,7 +87,7 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _showPatients = false),
+                      onTap: () => _setRoleFilter(false),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
@@ -93,7 +115,7 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                   const SizedBox(width: 15),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _showPatients = true),
+                      onTap: () => _setRoleFilter(true),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
@@ -125,14 +147,8 @@ class _ComplaintsViewState extends State<ComplaintsView> {
 
               // قائمة الشكاوى
               Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('complaints')
-                      .where(
-                        'userRole',
-                        isEqualTo: _showPatients ? 'patient' : 'doctor',
-                      )
-                      .snapshots(),
+                child: FutureBuilder<QuerySnapshot>(
+                  future: _complaintsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(

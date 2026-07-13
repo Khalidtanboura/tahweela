@@ -52,7 +52,7 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(deviceMessagingProvider);
+    ref.read(deviceMessagingProvider);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

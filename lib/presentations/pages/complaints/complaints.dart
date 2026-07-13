@@ -22,6 +22,8 @@ class _ComplaintsState extends State<Complaints> {
   }
 
   Future<void> _sendComplaint() async {
+    if (_isLoading) return;
+
     if (_complaintController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

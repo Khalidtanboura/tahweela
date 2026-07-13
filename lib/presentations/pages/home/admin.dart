@@ -5,6 +5,7 @@ import 'package:tahweela/presentations/pages/complaints/complaints_view.dart';
 import 'package:tahweela/presentations/pages/profile.dart';
 import 'package:tahweela/presentations/pages/usermanagment.dart';
 import 'package:tahweela/presentations/widgets/notificationBell.dart';
+import 'package:tahweela/data/repositories/referrals_repository.dart';
 import 'package:tahweela/providers/auth_provider.dart';
 import 'package:tahweela/providers/complanits_provider.dart';
 import 'package:tahweela/providers/notifications_provider.dart';
@@ -25,6 +26,7 @@ class _AdminState extends ConsumerState<Admin> {
   String _pendingReferrals = '0';
   String _totalComplaints = '0';
   String _pendingComplaints = '0';
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
@@ -33,18 +35,32 @@ class _AdminState extends ConsumerState<Admin> {
   }
 
   Future<void> _loadCounts() async {
+    final userFuture = ref.read(userDataProvider.future);
     final results = await Future.wait<int>([
       ref.read(totalReferralsCountOnceProvider.future),
       ref.read(pendingMedicalReviewCountOnceProvider.future),
       ref.read(totalComplaintsCountOnceProvider.future),
       ref.read(pendingComplaintsCountOnceProvider.future),
     ]);
+    final user = await userFuture;
+    final notifications = user == null
+        ? const []
+        : await ref
+              .read(notificationsRepositoryProvider)
+              .fetchNotifications(
+                role: user.role,
+                uid: user.uid,
+                specialty: ReferralsRepository.normalizeSpecialty(
+                  user.specialty ?? '',
+                ),
+              );
     if (!mounted) return;
     setState(() {
       _totalReferrals = results[0].toString();
       _pendingReferrals = results[1].toString();
       _totalComplaints = results[2].toString();
       _pendingComplaints = results[3].toString();
+      _unreadNotifications = notifications.where((item) => !item.isRead).length;
     });
   }
 
@@ -68,7 +84,7 @@ class _AdminState extends ConsumerState<Admin> {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Column(
               children: [
-                _Header(),
+                _Header(unreadCount: _unreadNotifications),
                 Expanded(
                   child: ListView(
                     children: [
@@ -162,11 +178,13 @@ class _AdminState extends ConsumerState<Admin> {
   }
 }
 
-class _Header extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(userNotificationsOnceProvider);
+class _Header extends StatelessWidget {
+  const _Header({required this.unreadCount});
 
+  final int unreadCount;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       height: 86,
       width: double.infinity,
@@ -180,14 +198,7 @@ class _Header extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            notificationsAsync.when(
-              data: (list) {
-                final unreadCount = list.where((item) => !item.isRead).length;
-                return buildNotificationBell(context, unreadCount);
-              },
-              loading: () => const SizedBox(),
-              error: (error, stackTrace) => const SizedBox(),
-            ),
+            buildNotificationBell(context, unreadCount),
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(

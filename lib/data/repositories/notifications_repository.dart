@@ -36,6 +36,31 @@ class NotificationsRepository {
         });
   }
 
+  Future<List<NotificationModel>> fetchNotifications({
+    required String role,
+    required String uid,
+    String? specialty,
+  }) async {
+    final snapshot = await _firestore
+        .collection('notifications')
+        .where('targetRole', isEqualTo: role)
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => NotificationModel.fromFirestore(doc))
+        .where((notification) {
+          final uidMatches =
+              notification.targetUid == null || notification.targetUid == uid;
+          final targetSpecialty = notification.targetSpecialty?.trim() ?? '';
+          final specialtyMatches =
+              targetSpecialty.isEmpty || targetSpecialty == specialty?.trim();
+
+          return uidMatches && specialtyMatches;
+        })
+        .toList();
+  }
+
   Future<void> markAsRead(String notificationId) async {
     await _firestore.collection('notifications').doc(notificationId).update({
       'isRead': true,

@@ -1,13 +1,54 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tahweela/providers/auth_provider.dart'; // تأكد من مسار الـ userDataProvider
-import 'package:tahweela/providers/complanits_provider.dart'; // تأكد من مسار الـ myComplaintsProvider
 
 import '../../widgets/card.dart';
 
-class UserComplaintsPage extends ConsumerWidget {
+class UserComplaintsPage extends ConsumerStatefulWidget {
   const UserComplaintsPage({super.key});
+
+  @override
+  ConsumerState<UserComplaintsPage> createState() => _UserComplaintsPageState();
+}
+
+class _UserComplaintsData {
+  const _UserComplaintsData({
+    required this.isDoctor,
+    required this.complaints,
+  });
+
+  final bool isDoctor;
+  final List<Map<String, dynamic>> complaints;
+}
+
+class _UserComplaintsPageState extends ConsumerState<UserComplaintsPage> {
+  late final Future<_UserComplaintsData> _complaintsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _complaintsFuture = _loadComplaints();
+  }
+
+  Future<_UserComplaintsData> _loadComplaints() async {
+    final userData = await ref.read(userDataProvider.future);
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (userData == null || firebaseUser == null) {
+      return const _UserComplaintsData(isDoctor: false, complaints: []);
+    }
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('complaints')
+        .where('userId', isEqualTo: firebaseUser.uid)
+        .get();
+
+    return _UserComplaintsData(
+      isDoctor: userData.role == 'doctor',
+      complaints: snapshot.docs.map((doc) => doc.data()).toList(),
+    );
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -41,13 +82,7 @@ class UserComplaintsPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 1. معرفة دور المستخدم لتحديد التنسيق البصري (مريض أم طبيب)
-    final userData = ref.watch(userDataProvider).value;
-    final bool isDoctor = userData!.role == 'doctor';
-
-    // 2. مراقبة تيار الشكاوى الخاص بالمستخدم الحالي
-    final complaintsAsync = ref.watch(myComplaintsProvider);
+  Widget build(BuildContext context) {
 
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFC),
@@ -63,9 +98,34 @@ class UserComplaintsPage extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: complaintsAsync.when(
+                child: FutureBuilder<_UserComplaintsData>(
+                  future: _complaintsFuture,
                   // حالة النجاح وعرض البيانات
-                  data: (complaintsList) {
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF16A34A),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text(
+                          'Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø¬Ù„Ø¨ Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰',
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      );
+                    }
+
+                    final loadedData = snapshot.data ??
+                        const _UserComplaintsData(
+                          isDoctor: false,
+                          complaints: [],
+                        );
+                    final isDoctor = loadedData.isDoctor;
+                    final complaintsList = loadedData.complaints;
                     if (complaintsList.isEmpty) {
                       return const Center(
                         child: Text(
@@ -222,19 +282,6 @@ class UserComplaintsPage extends ConsumerWidget {
                       },
                     );
                   },
-
-                  // حالة التحميل والانتظار
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF16A34A)),
-                  ),
-
-                  // حالة الخطأ في جلب تيار البيانات
-                  error: (error, stack) => const Center(
-                    child: Text(
-                      'حدث خطأ في جلب الشكاوى',
-                      style: TextStyle(color: Colors.red, fontSize: 16),
-                    ),
-                  ),
                 ),
               ),
             ],

@@ -3,8 +3,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/card.dart';
 
-class ComplaintsDoctorCase extends StatelessWidget {
+class ComplaintsDoctorCase extends StatefulWidget {
   const ComplaintsDoctorCase({super.key});
+
+  @override
+  State<ComplaintsDoctorCase> createState() => _ComplaintsDoctorCaseState();
+}
+
+class _ComplaintsDoctorCaseState extends State<ComplaintsDoctorCase> {
+  late final Future<QuerySnapshot> _complaintsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    _complaintsFuture = FirebaseFirestore.instance
+        .collection('complaints')
+        .where('userId', isEqualTo: user?.uid)
+        .get();
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -39,8 +56,6 @@ class ComplaintsDoctorCase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
@@ -55,11 +70,8 @@ class ComplaintsDoctorCase extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('complaints')
-                      .where('userId', isEqualTo: user?.uid)
-                      .snapshots(),
+                child: FutureBuilder<QuerySnapshot>(
+                  future: _complaintsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(

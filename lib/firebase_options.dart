@@ -50,20 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCuRtaXdOFj4GNBuA8hCeWzPaFcqyHiQSU',
-    appId: '1:601286053602:android:dc1b755fdcc75e557d58bb',
-    messagingSenderId: '601286053602',
-    projectId: 'tahwelaa',
-    storageBucket: 'tahwelaa.firebasestorage.app',
+    apiKey: 'AIzaSyBxV1tGQKB4l7wjHkd80jamiO-buwk9q7o',
+    appId: '1:597609438987:android:185aa243f00e065aa58c0e',
+    messagingSenderId: '597609438987',
+    projectId: 'tahweela-test',
+    storageBucket: 'tahweela-test.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBcoGbJ5FfJFCu80ipm672aV8hN-5DXMGI',
-    appId: '1:910580096972:ios:f302c7c6269cd6b3614769',
-    messagingSenderId: '910580096972',
-    projectId: 'chatapp-a964f',
-    databaseURL: 'https://chatapp-a964f-default-rtdb.firebaseio.com',
-    storageBucket: 'chatapp-a964f.appspot.com',
+    apiKey: 'AIzaSyD-6I6Uzs9id-IkJcgdVme126LZSWTCIRA',
+    appId: '1:597609438987:ios:dceadd7265583f73a58c0e',
+    messagingSenderId: '597609438987',
+    projectId: 'tahweela-test',
+    storageBucket: 'tahweela-test.firebasestorage.app',
     iosBundleId: 'com.example.tahweela',
   );
 }

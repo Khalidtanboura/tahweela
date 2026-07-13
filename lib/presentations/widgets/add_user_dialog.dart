@@ -42,6 +42,8 @@ class _AddUserDialogState extends State<AddUserDialog> {
   }
 
   Future<void> _searchPublicUser() async {
+    if (_isSearching || _isLoading) return;
+
     final nationalId = _idController.text.trim();
     if (nationalId.isEmpty) {
       _showError('يرجى إدخال رقم الهوية أولا');
@@ -79,7 +81,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
   }
 
   Future<void> _addUser() async {
+    if (_isLoading || _isSearching) return;
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
 
     final selectedId = _selectedPublicUser?.nationalId;
     if (_selectedPublicUser == null ||
@@ -88,10 +93,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
     }
     if (_selectedPublicUser == null ||
         _selectedPublicUser!.nationalId != _idController.text.trim()) {
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
-    setState(() => _isLoading = true);
     try {
       await _authRepository.createLinkedUserFromPublicUser(
         publicUser: _selectedPublicUser!,

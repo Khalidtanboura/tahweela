@@ -51,6 +51,15 @@ class AuthRepository {
   }) async {
     final nationalId = _normalizeNationalId(publicUser.nationalId);
     final existingUser = await findUserByNationalId(nationalId);
+    if (existingUser != null) {
+      await _markPublicUserLinked(
+        publicUser: publicUser,
+        user: existingUser,
+        role: role,
+      );
+      return existingUser;
+    }
+
     final email = '$nationalId@tahweela.com';
     final secondaryAuth = FirebaseAuth.instanceFor(app: await _secondaryApp());
     UserCredential userCredential;

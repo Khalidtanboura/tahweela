@@ -3,8 +3,34 @@ import 'package:flutter/material.dart';
 import 'package:tahweela/presentations/widgets/add_user_dialog.dart';
 import 'package:tahweela/presentations/widgets/card.dart';
 
-class UserManagment extends StatelessWidget {
+class UserManagment extends StatefulWidget {
   const UserManagment({super.key});
+
+  @override
+  State<UserManagment> createState() => _UserManagmentState();
+}
+
+class _UserManagmentState extends State<UserManagment> {
+  late Future<QuerySnapshot<Map<String, dynamic>>> _usersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _usersFuture = _fetchUsers();
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _fetchUsers() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('createdAt', descending: true)
+        .get();
+  }
+
+  void _reloadUsers() {
+    setState(() {
+      _usersFuture = _fetchUsers();
+    });
+  }
 
   String _getRoleLabel(String role) {
     switch (role) {
@@ -35,11 +61,8 @@ class UserManagment extends StatelessWidget {
                 ),
                 const SizedBox(height: 22),
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .orderBy('createdAt', descending: true)
-                        .snapshots(),
+                  child: FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    future: _usersFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
@@ -90,8 +113,12 @@ class UserManagment extends StatelessWidget {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            showDialog(context: context, builder: (_) => const AddUserDialog());
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (_) => const AddUserDialog(),
+            );
+            if (context.mounted) _reloadUsers();
           },
           backgroundColor: const Color(0xFF16A34A),
           shape: RoundedRectangleBorder(
