@@ -45,18 +45,55 @@ class ReferralModel {
   }
 
   factory ReferralModel.fromMap(Map<String, dynamic> data, {String id = ''}) {
+    final diseaseType = _firstString(data, const [
+      'diseaseType',
+      'disease_type',
+      'caseType',
+      'specialty',
+    ]);
+    final diagnosis = _firstString(data, const [
+      'diagnosis',
+      'diagnose',
+      'diseaseType',
+      'caseType',
+      'specialty',
+    ]);
+
     return ReferralModel(
       id: id,
-      doctorId: data['doctorId']?.toString() ?? '',
-      doctorName: data['doctorName']?.toString() ?? '',
-      patientId: data['patientId']?.toString() ?? '',
-      patientName: data['patientName']?.toString() ?? '',
-      diagnosis: data['diagnosis']?.toString() ?? '',
-      reason: data['reason']?.toString() ?? '',
-      diseaseType: data['diseaseType']?.toString() ?? '',
-      assignedSpecialty: data['assignedSpecialty']?.toString() ?? '',
-      status: data['status']?.toString() ?? 'pending',
-      adminReply: data['adminReply']?.toString() ?? '',
+      doctorId: _firstString(data, const [
+        'doctorId',
+        'doctorUid',
+        'doctor_id',
+      ]),
+      doctorName: _firstString(data, const [
+        'doctorName',
+        'doctor_name',
+        'createdByName',
+        'userName',
+      ]),
+      patientId: _firstString(data, const [
+        'patientId',
+        'patientUid',
+        'patientNationalId',
+        'nationalId',
+      ]),
+      patientName: _firstString(data, const [
+        'patientName',
+        'patientFullName',
+        'fullName',
+        'name',
+      ]),
+      diagnosis: diagnosis,
+      reason: _firstString(data, const ['reason', 'notes', 'initialNotes']),
+      diseaseType: diseaseType,
+      assignedSpecialty: _firstString(data, const [
+        'assignedSpecialty',
+        'targetSpecialty',
+        'specialty',
+      ]),
+      status: _firstString(data, const ['status'], fallback: 'pending'),
+      adminReply: _firstString(data, const ['adminReply', 'reply']),
       medicalScore: MedicalScoreModel.fromMap(
         data['medicalScore'] as Map<String, dynamic>?,
       ),
@@ -97,5 +134,19 @@ class ReferralModel {
     if (value is Timestamp) return value.toDate();
     if (value is DateTime) return value;
     return null;
+  }
+
+  static String _firstString(
+    Map<String, dynamic> data,
+    List<String> keys, {
+    String fallback = '',
+  }) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty) return text;
+    }
+    return fallback;
   }
 }

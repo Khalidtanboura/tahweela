@@ -13,7 +13,6 @@ class NotificationsRepository {
     return _firestore
         .collection('notifications')
         .where('targetRole', isEqualTo: role)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
           final notifications = snapshot.docs
@@ -31,6 +30,7 @@ class NotificationsRepository {
                 return uidMatches && specialtyMatches;
               })
               .toList();
+          _sortNewestFirst(notifications);
 
           return notifications;
         });
@@ -44,10 +44,9 @@ class NotificationsRepository {
     final snapshot = await _firestore
         .collection('notifications')
         .where('targetRole', isEqualTo: role)
-        .orderBy('createdAt', descending: true)
         .get();
 
-    return snapshot.docs
+    final notifications = snapshot.docs
         .map((doc) => NotificationModel.fromFirestore(doc))
         .where((notification) {
           final uidMatches =
@@ -59,6 +58,12 @@ class NotificationsRepository {
           return uidMatches && specialtyMatches;
         })
         .toList();
+    _sortNewestFirst(notifications);
+    return notifications;
+  }
+
+  static void _sortNewestFirst(List<NotificationModel> notifications) {
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   Future<void> markAsRead(String notificationId) async {

@@ -39,6 +39,8 @@ class _SecondReferralState extends ConsumerState<SecondReferral> {
   int get _score => _answers.where((answer) => answer == true).length;
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     final draft = widget.draft;
     if (draft == null) {
       _showSnackBar('بيانات الحالة غير مكتملة، يرجى الرجوع وإعادة المحاولة');
@@ -51,7 +53,7 @@ class _SecondReferralState extends ConsumerState<SecondReferral> {
       return;
     }
 
-    final doctor = ref.read(userDataProvider).value;
+    final doctor = await ref.read(userDataProvider.future);
     if (doctor == null) {
       _showSnackBar('تعذر تحديد بيانات الطبيب الحالي');
       return;

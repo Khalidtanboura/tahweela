@@ -38,15 +38,28 @@ class ReferralsRepository {
     String initialNotes = '',
   }) async {
     final patientUid = await _ensurePatientUid(patientId, phone: patientPhone);
-    final assignedSpecialty = specialtyForDiseaseType(diseaseType);
+    final normalizedDiseaseType = diseaseType.trim();
+    final assignedSpecialty = specialtyForDiseaseType(normalizedDiseaseType);
+    final resolvedPatientName = await _resolvePatientName(
+      patientName: patientName,
+      patientIdOrNationalId: patientId,
+    );
+    final resolvedDoctorName = await _resolveDoctorName(
+      doctorName: doctorName,
+      doctorId: doctorId,
+    );
+    final resolvedDiagnosis = diagnosis.trim().isEmpty
+        ? normalizedDiseaseType
+        : diagnosis.trim();
+    final resolvedReason = reason.trim();
     final referralData = ReferralModel(
       doctorId: doctorId,
-      doctorName: doctorName,
+      doctorName: resolvedDoctorName,
       patientId: patientUid,
-      patientName: patientName,
-      diagnosis: diagnosis,
-      reason: reason,
-      diseaseType: diseaseType,
+      patientName: resolvedPatientName,
+      diagnosis: resolvedDiagnosis,
+      reason: resolvedReason,
+      diseaseType: normalizedDiseaseType,
       assignedSpecialty: assignedSpecialty,
       status: 'approved',
     ).toMap();
@@ -54,7 +67,7 @@ class ReferralsRepository {
     referralData.addAll({
       'patientNationalId': patientNationalId,
       'patientPhone': patientPhone,
-      'diseaseType': diseaseType,
+      'diseaseType': normalizedDiseaseType,
       'assignedSpecialty': assignedSpecialty,
       'attachments': attachments,
       'initialQuestions': initialQuestions,
@@ -79,7 +92,8 @@ class ReferralsRepository {
       );
       await _notificationsRepo.sendNotificationToAllDoctors(
         title: 'تم تقديم إحالة جديدة',
-        body: 'أرسل د. $doctorName تحويلا جديدا لـ $patientName.',
+        body:
+            'New referral from Dr. $resolvedDoctorName for $resolvedPatientName.',
         type: 'new_referral',
         targetSpecialty: assignedSpecialty,
         relatedId: referralDoc.id,
@@ -211,7 +225,12 @@ class ReferralsRepository {
 
     if (completedReviewCount >= 3) {
       final finalStatus = updateData['finalMedicalDecision']?.toString() ?? '';
-      final patientUid = data['patientId']?.toString() ?? '';
+      final patientIdOrNationalId = data['patientId']?.toString() ?? '';
+      final patientNationalId = data['patientNationalId']?.toString() ?? '';
+      final patientUid = await _resolvePatientUidForNotification(
+        patientIdOrNationalId: patientIdOrNationalId,
+        patientNationalId: patientNationalId,
+      );
       final patientName = data['patientName']?.toString() ?? '';
       final statusText = finalStatus == 'accepted' ? 'قبول' : 'رفض';
       final totalScore = updateData['totalScore']?.toString() ?? '0';
@@ -265,6 +284,69 @@ class ReferralsRepository {
     return patient.uid;
   }
 
+  Future<String> _resolvePatientName({
+    required String patientName,
+    required String patientIdOrNationalId,
+  }) async {
+    final trimmedName = patientName.trim();
+    if (trimmedName.isNotEmpty) return trimmedName;
+
+    final existingUser = await _authRepository.findUserByNationalId(
+      patientIdOrNationalId,
+    );
+    if (existingUser != null && existingUser.name.trim().isNotEmpty) {
+      return existingUser.name.trim();
+    }
+
+    final publicUser = await _publicUsersRepository.findByNationalId(
+      patientIdOrNationalId,
+    );
+    if (publicUser != null && publicUser.fullName.trim().isNotEmpty) {
+      return publicUser.fullName.trim();
+    }
+
+    return patientIdOrNationalId.trim();
+  }
+
+  Future<String> _resolvePatientUidForNotification({
+    required String patientIdOrNationalId,
+    required String patientNationalId,
+  }) async {
+    final primary = patientIdOrNationalId.trim();
+    if (primary.isEmpty) return '';
+
+    final userByUid = await _firestore.collection('users').doc(primary).get();
+    if (userByUid.exists) return primary;
+
+    final existingUser = await _authRepository.findUserByNationalId(primary);
+    if (existingUser != null) return existingUser.uid;
+
+    final nationalId = patientNationalId.trim();
+    if (nationalId.isNotEmpty) {
+      final userByNationalId = await _authRepository.findUserByNationalId(
+        nationalId,
+      );
+      if (userByNationalId != null) return userByNationalId.uid;
+    }
+
+    return primary;
+  }
+
+  Future<String> _resolveDoctorName({
+    required String doctorName,
+    required String doctorId,
+  }) async {
+    final trimmedName = doctorName.trim();
+    if (trimmedName.isNotEmpty) return trimmedName;
+
+    final snapshot = await _firestore.collection('users').doc(doctorId).get();
+    final data = snapshot.data();
+    final storedName = data?['name']?.toString().trim() ?? '';
+    if (storedName.isNotEmpty) return storedName;
+
+    return doctorId;
+  }
+
   Future<void> updateReferralStatus({
     required String referralId,
     required String doctorId,
@@ -310,9 +392,7 @@ class ReferralsRepository {
     required String role,
     String? uid,
   }) async {
-    Query query = _firestore
-        .collection('referrals')
-        .orderBy('createdAt', descending: true);
+    Query query = _firestore.collection('referrals');
 
     if (role == 'doctor' && uid != null) {
       query = query.where('doctorId', isEqualTo: uid);
@@ -321,15 +401,15 @@ class ReferralsRepository {
     }
 
     final snapshot = await query.get();
-    return snapshot.docs
+    final referrals = snapshot.docs
         .map((doc) => ReferralModel.fromFirestore(doc))
         .toList();
+    _sortNewestFirst(referrals);
+    return referrals;
   }
 
   Stream<QuerySnapshot> streamReferrals({required String role, String? uid}) {
-    Query query = _firestore
-        .collection('referrals')
-        .orderBy('createdAt', descending: true);
+    Query query = _firestore.collection('referrals');
 
     if (role == 'doctor' && uid != null) {
       query = query.where('doctorId', isEqualTo: uid);
@@ -355,6 +435,11 @@ class ReferralsRepository {
           .map((doc) => ReferralModel.fromFirestore(doc))
           .where((referral) {
             if (!_needsMedicalReview(referral.status)) return false;
+            if (reviewerId != null &&
+                reviewerId.isNotEmpty &&
+                referral.doctorId == reviewerId) {
+              return false;
+            }
             if (reviewerId != null && reviewerId.isNotEmpty) {
               final data = snapshot.docs
                   .firstWhere((doc) => doc.id == referral.id)
@@ -375,11 +460,7 @@ class ReferralsRepository {
           })
           .toList();
 
-      referrals.sort((a, b) {
-        final aDate = a.updatedAt ?? a.createdAt ?? DateTime(0);
-        final bDate = b.updatedAt ?? b.createdAt ?? DateTime(0);
-        return bDate.compareTo(aDate);
-      });
+      _sortNewestFirst(referrals);
 
       return referrals;
     });
@@ -399,11 +480,17 @@ class ReferralsRepository {
         .map((doc) => ReferralModel.fromFirestore(doc))
         .where((referral) {
           if (!_needsMedicalReview(referral.status)) return false;
+          if (reviewerId != null &&
+              reviewerId.isNotEmpty &&
+              referral.doctorId == reviewerId) {
+            return false;
+          }
           if (reviewerId != null && reviewerId.isNotEmpty) {
             final data = snapshot.docs
                 .firstWhere((doc) => doc.id == referral.id)
                 .data();
-            final reviews = data['medicalReviews'] as Map<String, dynamic>? ?? {};
+            final reviews =
+                data['medicalReviews'] as Map<String, dynamic>? ?? {};
             if (reviews.containsKey(reviewerId)) return false;
           }
           final assignedSpecialty = normalizeSpecialty(
@@ -418,13 +505,17 @@ class ReferralsRepository {
         })
         .toList();
 
+    _sortNewestFirst(referrals);
+
+    return referrals;
+  }
+
+  static void _sortNewestFirst(List<ReferralModel> referrals) {
     referrals.sort((a, b) {
       final aDate = a.updatedAt ?? a.createdAt ?? DateTime(0);
       final bDate = b.updatedAt ?? b.createdAt ?? DateTime(0);
       return bDate.compareTo(aDate);
     });
-
-    return referrals;
   }
 
   static String specialtyForDiseaseType(String diseaseType) {

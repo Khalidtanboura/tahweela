@@ -138,6 +138,17 @@ class _ReferralCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final priority = _priorityLabel(referral.priorityLevel);
     final status = _statusLabel(referral.status);
+    final patientName = referral.patientName.isEmpty
+        ? 'مريض غير معروف'
+        : referral.patientName;
+    final doctorName = referral.doctorName.isEmpty
+        ? 'طبيب غير معروف'
+        : referral.doctorName;
+    final specialty = referral.assignedSpecialty.isNotEmpty
+        ? referral.assignedSpecialty
+        : referral.diseaseType.isNotEmpty
+        ? referral.diseaseType
+        : referral.diagnosis;
     final canApprove =
         mode == CasesListMode.admin && referral.status == 'pending';
 
@@ -167,9 +178,7 @@ class _ReferralCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    referral.patientName.isEmpty
-                        ? 'Unnamed patient'
-                        : referral.patientName,
+                    patientName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -189,13 +198,10 @@ class _ReferralCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'د. ${referral.doctorName.isEmpty ? 'Unnamed doctor' : referral.doctorName}',
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text('Dr. $doctorName', style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 8),
             Text(
-              'التخصص: ${referral.diagnosis.isEmpty ? 'No diagnosis' : referral.diagnosis}',
+              'Specialty: ${specialty.isEmpty ? 'Not specified' : specialty}',
               style: const TextStyle(color: Color(0xFF334155)),
             ),
             const SizedBox(height: 8),
@@ -399,11 +405,11 @@ String _statusLabel(String status) {
   switch (status) {
     case 'approved':
     case 'accepted':
-      return 'Approved';
+      return 'موافقة';
     case 'returned':
       return 'Returned';
     case 'pending':
     default:
-      return 'Pending review';
+      return 'قيد المراجعة';
   }
 }
