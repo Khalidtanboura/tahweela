@@ -138,7 +138,7 @@ class Profile extends ConsumerWidget {
                         // 2. إذا نجحت العملية (ولم يحدث استثناء)، ننتقل فوراً لصفحة الـ login ونفرغ الذاكرة
                         if (context.mounted) {
                           Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/',
+                            'login', // ✅ استخدام 'login' بدلاً من '/' لتفادي الانهيار
                             (Route<dynamic> route) => false,
                           );
                         }

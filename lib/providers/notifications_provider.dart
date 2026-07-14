@@ -53,7 +53,38 @@ final userNotificationsOnceProvider = FutureProvider<List<NotificationModel>>((
     error: (_, __) => Future.value([]),
   );
 });
+final deviceMessagingProvider = Provider<void>((ref) {
+  // ✅ مراقبة حالة المصادقة بشكل تفاعلي ليعاد التشغيل فور تسجيل الدخول
+  final authState = ref.watch(authStateProvider).value;
+  if (authState == null) return;
 
+  final messaging = FirebaseMessaging.instance;
+  final firestore = FirebaseFirestore.instance;
+  final userRef = firestore.collection('users').doc(authState.uid);
+
+  Future<void> saveToken(String? token) async {
+    if (token == null || token.isEmpty) return;
+
+    final snapshot = await userRef.get();
+    final data = snapshot.data();
+    final currentToken = data?['fcmToken']?.toString();
+    final tokens = data?['fcmTokens'];
+    final tokenAlreadySaved =
+        currentToken == token || (tokens is List && tokens.contains(token));
+
+    if (tokenAlreadySaved) return;
+
+    await userRef.set({
+      'fcmToken': token,
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    }, SetOptions(merge: true));
+  }
+
+  messaging.getToken().then(saveToken).catchError((_) {});
+  final subscription = messaging.onTokenRefresh.listen(saveToken);
+  ref.onDispose(subscription.cancel);
+});
+/*
 final deviceMessagingProvider = Provider<void>((ref) {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -84,3 +115,4 @@ final deviceMessagingProvider = Provider<void>((ref) {
   final subscription = messaging.onTokenRefresh.listen(saveToken);
   ref.onDispose(subscription.cancel);
 });
+*/
