@@ -16,73 +16,100 @@ class ComplaintNotifier extends AsyncNotifier<void> {
 
   // ❌ تم حذف السطر الخاطئ من هنا
 
+  // داخل كلاس ComplaintNotifier في ملف complanits_provider.dart
+
   Future<bool> sendComplaints(String complaintText) async {
     state = const AsyncLoading();
     try {
       final user = FirebaseAuth.instance.currentUser;
 
-      // الحل هنا: فحص التأكد من وجود مستخدم
       if (user == null) {
         throw Exception("يجب تسجيل الدخول لإرسال شكوى");
       }
 
+      // جلب بيانات المستخدم الحالي لتضمينها مع الشكوى
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid) // إزالة الـ ! هنا
+          .doc(user.uid)
           .get();
 
       final userData = userDoc.data() ?? {};
       final userName = userData['name'] ?? 'مجهول';
       final userRole = userData['role'] ?? 'patient';
 
-      final complaintDoc = await FirebaseFirestore.instance
+      // 1. تجهيز بيانات الشكوى في الخريطة (Map)
+      final complaintData = {
+        'userId': user.uid,
+        'userName': userName,
+        'userRole': userRole,
+        'complaintText': complaintText,
+        'createdAt': FieldValue.serverTimestamp(), // تسجيل وقت السيرفر بدقة
+      };
+
+      // ==================== [بداية كود الـ Batch الجديد] ====================
+      final batch = FirebaseFirestore.instance.batch();
+
+      // أ. مرجع الشكوى الجديدة (إنشاء مستند جديد والحصول على الـ ID الخاص به تلقائياً)
+      final complaintRef = FirebaseFirestore.instance
           .collection('complaints')
-          .add({
-            'text': complaintText.trim(),
-            'userId': user.uid,
-            'userName': userName,
-            'userRole': userRole,
-            'status': 'pending',
-            'replyText': '',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          .doc();
+      batch.set(complaintRef, complaintData);
 
-      // ✅ الحل: جلب مستودع الإشعارات باستخدام ref.read المتاح محلياً
-      final notificationsRepo = ref.read(notificationsRepositoryProvider);
+      // ب. مرجع مستند العداد وزيادته بمقدار 1
+      final counterRef = FirebaseFirestore.instance
+          .collection('metadata')
+          .doc('complaints_counter');
+      batch.set(counterRef, {
+        'count': FieldValue.increment(1),
+      }, SetOptions(merge: true));
 
-      await notificationsRepo.sendNotificationToAdmin(
-        title: 'شكوى جديدة في النظام ⚠️',
-        body: 'قام $userName بتقديم شكوى بخصوص: $complaintText',
-        type: 'complaint_update',
-        relatedId: complaintDoc.id,
-        routeName: 'complaintsView',
-      );
+      // ج. تنفيذ عمليتي (حفظ الشكوى + زيادة العداد) دفعة واحدة في السيرفر
+      await batch.commit();
+      // ==================== [نهاية كود الـ Batch الجديد] ====================
 
-      state = const AsyncData(null);
+      state = const AsyncData<void>(null);
       return true;
-    } catch (e, stackTrace) {
-      state = AsyncError(e, stackTrace);
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
       return false;
     }
   }
 }
 
-// مزود لجلب إجمالي عدد الشكاوى في النظام بالوقت الفعلي
+/*// مزود لجلب إجمالي عدد الشكاوى في النظام بالوقت الفعلي
 final totalComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
   return FirebaseFirestore.instance
       .collection('complaints')
       .snapshots()
       .map((snapshot) => snapshot.docs.length);
+});*/
+final totalComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
+  return FirebaseFirestore.instance
+      .collection('metadata')
+      .doc('complaints_counter') // مستند منفصل يحمل العداد فقط
+      .snapshots()
+      .map((snapshot) {
+        final data = snapshot.data();
+        return (data?['count'] as num?)?.toInt() ??
+            0; // ✅ عملية قراءة واحدة فقط دائماً مهما بلغ حجم البيانات!
+      });
 });
-
-final totalComplaintsCountOnceProvider = FutureProvider.autoDispose<int>((ref) {
+/*final totalComplaintsCountOnceProvider = FutureProvider.autoDispose<int>((ref) {
   return FirebaseFirestore.instance
       .collection('complaints')
       .snapshots()
       .map((snapshot) => snapshot.docs.length)
       .first;
+});*/
+final totalComplaintsCountOnceProvider = FutureProvider.autoDispose<int>((
+  ref,
+) async {
+  final query = FirebaseFirestore.instance.collection('complaints');
+  final aggregateSnapshot = await query
+      .count()
+      .get(); // ✅ حساب العداد على الخادم مباشرة دون تحميل أي مستند
+  return aggregateSnapshot.count ?? 0;
 });
-
 // مزود لجلب عدد الشكاوى "قيد الانتظار" فقط بالوقت الفعلي
 final pendingComplaintsCountProvider = StreamProvider.autoDispose<int>((ref) {
   return FirebaseFirestore.instance

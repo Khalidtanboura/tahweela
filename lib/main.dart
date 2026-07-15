@@ -72,7 +72,7 @@ class MyApp extends ConsumerWidget {
         'home': (context) => const AuthGate(),
         '/login': (context) => const Login(),
         'splash': (context) => const Splash(),
-        'login': (context) => const Login(),
+        'login': (context) => const AuthGate(),
         '/patient': (context) => const Patient(),
         'patient': (context) => const Patient(),
         '/doctor': (context) => const Doctor(),
