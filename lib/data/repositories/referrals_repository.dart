@@ -174,14 +174,6 @@ class ReferralsRepository {
     String notes = '',
   }) async {
     final referralRef = _firestore.collection('referrals').doc(referralId);
-    final snapshot = await referralRef.get();
-    final data = snapshot.data() ?? {};
-    final rawReviews = data['medicalReviews'] as Map<String, dynamic>? ?? {};
-
-    if (rawReviews.containsKey(reviewerId)) {
-      throw Exception('تم تقييم هذه الحالة من قبلك مسبقا');
-    }
-
     final reviewData = {
       'reviewerId': reviewerId,
       'reviewerName': reviewerName,
@@ -192,55 +184,78 @@ class ReferralsRepository {
       'notes': notes,
       'reviewedAt': FieldValue.serverTimestamp(),
     };
-    final completedReviewCount = rawReviews.length + 1;
 
-    final updateData = <String, dynamic>{
-      'status': completedReviewCount >= 3
-          ? _finalStatusForScore(
-              _averageScore([...rawReviews.values, reviewData]),
-            )
-          : 'under_medical_review',
-      'medicalReviews.$reviewerId': reviewData,
-      'medicalReviewCount': completedReviewCount,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
+    final completion = await _firestore
+        .runTransaction<_MedicalReviewCompletion?>((transaction) async {
+          final snapshot = await transaction.get(referralRef);
+          final data = snapshot.data() ?? {};
+          final currentStatus = data['status']?.toString() ?? '';
+          final rawReviews = _reviewMapFrom(data['medicalReviews']);
 
-    if (completedReviewCount >= 3) {
-      final averageTotal = _averageScore([...rawReviews.values, reviewData]);
-      final finalScore = _scoreFromReviews([...rawReviews.values, reviewData]);
-      final finalStatus = _finalStatusForScore(averageTotal);
+          if (_isFinalStatus(currentStatus) ||
+              data['finalMedicalDecision'] != null) {
+            throw Exception('?? ????? ????? ??? ?????? ?????');
+          }
 
-      updateData.addAll({
-        'medicalScore': finalScore.toMap(),
-        'totalScore': finalScore.total,
-        'averageMedicalScore': averageTotal,
-        'priorityLevel': finalScore.priorityLevel,
-        'finalMedicalDecision': finalStatus,
-        'reviewedAt': FieldValue.serverTimestamp(),
-        'finalReviewedAt': FieldValue.serverTimestamp(),
-      });
-    }
+          if (rawReviews.containsKey(reviewerId)) {
+            throw Exception('?? ????? ??? ?????? ?? ???? ?????');
+          }
 
-    await referralRef.update(updateData);
+          final reviews = [...rawReviews.values, reviewData];
+          final completedReviewCount = reviews.length;
+          final updateData = <String, dynamic>{
+            'status': completedReviewCount >= 3
+                ? _finalStatusForScore(_averageScore(reviews))
+                : 'under_medical_review',
+            'medicalReviews.$reviewerId': reviewData,
+            'medicalReviewCount': completedReviewCount,
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
 
-    if (completedReviewCount >= 3) {
-      final finalStatus = updateData['finalMedicalDecision']?.toString() ?? '';
-      final patientIdOrNationalId = data['patientId']?.toString() ?? '';
-      final patientNationalId = data['patientNationalId']?.toString() ?? '';
+          if (completedReviewCount < 3) {
+            transaction.update(referralRef, updateData);
+            return null;
+          }
+
+          final averageTotal = _averageScore(reviews);
+          final finalScore = _scoreFromReviews(reviews);
+          final finalStatus = _finalStatusForScore(averageTotal);
+
+          updateData.addAll({
+            'status': finalStatus,
+            'medicalScore': finalScore.toMap(),
+            'totalScore': finalScore.total,
+            'averageMedicalScore': averageTotal,
+            'priorityLevel': finalScore.priorityLevel,
+            'finalMedicalDecision': finalStatus,
+            'reviewedAt': FieldValue.serverTimestamp(),
+            'finalReviewedAt': FieldValue.serverTimestamp(),
+            'medicalDecisionNotifiedAt': FieldValue.serverTimestamp(),
+          });
+          transaction.update(referralRef, updateData);
+
+          return _MedicalReviewCompletion(
+            finalStatus: finalStatus,
+            totalScore: finalScore.total,
+            patientIdOrNationalId: data['patientId']?.toString() ?? '',
+            patientNationalId: data['patientNationalId']?.toString() ?? '',
+            patientName: data['patientName']?.toString() ?? '',
+          );
+        });
+
+    if (completion != null) {
       final patientUid = await _resolvePatientUidForNotification(
-        patientIdOrNationalId: patientIdOrNationalId,
-        patientNationalId: patientNationalId,
+        patientIdOrNationalId: completion.patientIdOrNationalId,
+        patientNationalId: completion.patientNationalId,
       );
-      final patientName = data['patientName']?.toString() ?? '';
-      final statusText = finalStatus == 'accepted' ? 'قبول' : 'رفض';
-      final totalScore = updateData['totalScore']?.toString() ?? '0';
+      final statusText = completion.finalStatus == 'accepted' ? '????' : '???';
 
       if (patientUid.isNotEmpty) {
         await _notificationsRepo.sendNotificationToPatient(
           patientUid: patientUid,
-          title: 'تم إصدار نتيجة تقييم حالتك',
+          title: '?? ????? ????? ????? ?????',
           body:
-              'تم $statusText الحالة بعد اكتمال تقييم 3 أطباء. النتيجة النهائية: $totalScore/100.',
+              '?? $statusText ?????? ??? ?????? ????? 3 ?????. ??????? ????????: ${completion.totalScore}/100.',
           type: 'system_alert',
           relatedId: referralId,
           routeName: 'casePatient',
@@ -248,9 +263,9 @@ class ReferralsRepository {
       }
 
       await _notificationsRepo.sendNotificationToAdmin(
-        title: 'اكتمل تقييم حالة طبية',
+        title: '????? ????? ???? ????',
         body:
-            'اكتمل تقييم حالة ${patientName.isEmpty ? 'مريض' : patientName} من 3 أطباء، والقرار النهائي: $statusText.',
+            '????? ????? ???? ${completion.patientName.isEmpty ? '????' : completion.patientName} ?? 3 ?????? ??????? ???????: $statusText.',
         type: 'system_alert',
         relatedId: referralId,
         routeName: 'casesList',
@@ -539,6 +554,26 @@ class ReferralsRepository {
     }
   }
 
+  static bool _isFinalStatus(String status) {
+    switch (status.trim().toLowerCase()) {
+      case 'accepted':
+      case 'rejected':
+      case 'returned':
+      case 'closed':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  static Map<String, dynamic> _reviewMapFrom(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return <String, dynamic>{};
+  }
+
   static int _averageScore(List<dynamic> reviews) {
     if (reviews.isEmpty) return 0;
     final total = reviews.fold<int>(0, (runningTotal, review) {
@@ -585,4 +620,20 @@ class ReferralsRepository {
   static String _finalStatusForScore(int score) {
     return score >= 50 ? 'accepted' : 'rejected';
   }
+}
+
+class _MedicalReviewCompletion {
+  const _MedicalReviewCompletion({
+    required this.finalStatus,
+    required this.totalScore,
+    required this.patientIdOrNationalId,
+    required this.patientNationalId,
+    required this.patientName,
+  });
+
+  final String finalStatus;
+  final int totalScore;
+  final String patientIdOrNationalId;
+  final String patientNationalId;
+  final String patientName;
 }
