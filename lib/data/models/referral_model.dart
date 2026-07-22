@@ -14,8 +14,12 @@ class ReferralModel {
   final String status;
   final String adminReply;
   final MedicalScoreModel medicalScore;
+  final int medicalReviewCount;
+  final int averageMedicalScore;
+  final String finalMedicalDecision;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? finalReviewedAt;
 
   const ReferralModel({
     this.id = '',
@@ -35,8 +39,12 @@ class ReferralModel {
       treatability: 0,
       resourceAdjustment: 0,
     ),
+    this.medicalReviewCount = 0,
+    this.averageMedicalScore = 0,
+    this.finalMedicalDecision = '',
     this.createdAt,
     this.updatedAt,
+    this.finalReviewedAt,
   });
 
   factory ReferralModel.fromFirestore(DocumentSnapshot doc) {
@@ -97,14 +105,25 @@ class ReferralModel {
       medicalScore: MedicalScoreModel.fromMap(
         data['medicalScore'] as Map<String, dynamic>?,
       ),
+      medicalReviewCount: _readMedicalReviewCount(data),
+      averageMedicalScore: _readInt(
+        data['averageMedicalScore'],
+        fallback: _readInt(data['totalScore']),
+      ).clamp(0, 100),
+      finalMedicalDecision: _firstString(data, const ['finalMedicalDecision']),
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
+      finalReviewedAt: _dateFromFirestore(data['finalReviewedAt']),
     );
   }
 
   String get priorityLevel => medicalScore.priorityLevel;
 
   int get totalScore => medicalScore.total;
+
+  bool get hasFinalMedicalDecision => finalMedicalDecision.trim().isNotEmpty;
+
+  int get remainingMedicalReviews => (3 - medicalReviewCount).clamp(0, 3);
 
   Map<String, dynamic> toMap({bool useServerTimestamp = true}) {
     final createdAtValue = createdAt == null
@@ -125,8 +144,14 @@ class ReferralModel {
       'medicalScore': medicalScore.toMap(),
       'priorityLevel': priorityLevel,
       'totalScore': totalScore,
+      'medicalReviewCount': medicalReviewCount,
+      'averageMedicalScore': averageMedicalScore,
+      if (finalMedicalDecision.isNotEmpty)
+        'finalMedicalDecision': finalMedicalDecision,
       'createdAt': useServerTimestamp ? createdAtValue : createdAt,
       if (updatedAt != null) 'updatedAt': Timestamp.fromDate(updatedAt!),
+      if (finalReviewedAt != null)
+        'finalReviewedAt': Timestamp.fromDate(finalReviewedAt!),
     };
   }
 
@@ -148,5 +173,19 @@ class ReferralModel {
       if (text.isNotEmpty) return text;
     }
     return fallback;
+  }
+
+  static int _readMedicalReviewCount(Map<String, dynamic> data) {
+    final storedCount = _readInt(data['medicalReviewCount']);
+    if (storedCount > 0) return storedCount;
+
+    final reviews = data['medicalReviews'];
+    if (reviews is Map) return reviews.length;
+    return 0;
+  }
+
+  static int _readInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 }

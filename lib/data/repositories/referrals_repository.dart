@@ -8,6 +8,8 @@ import 'notifications_repository.dart';
 import 'public_users_repository.dart';
 
 class ReferralsRepository {
+  static const int minimumMedicalReviews = 3;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationsRepository _notificationsRepo;
   final AuthRepository _authRepository;
@@ -198,34 +200,36 @@ class ReferralsRepository {
           }
 
           if (rawReviews.containsKey(reviewerId)) {
-            throw Exception('?? ????? ??? ?????? ?? ???? ?????');
+            throw Exception('تم حفظ تقييمك لهذه الحالة سابقا');
           }
 
           final reviews = [...rawReviews.values, reviewData];
           final completedReviewCount = reviews.length;
+          final currentAverageScore = _averageScore(reviews);
           final updateData = <String, dynamic>{
-            'status': completedReviewCount >= 3
-                ? _finalStatusForScore(_averageScore(reviews))
+            'status': completedReviewCount >= minimumMedicalReviews
+                ? _finalStatusForScore(currentAverageScore)
                 : 'under_medical_review',
             'medicalReviews.$reviewerId': reviewData,
             'medicalReviewCount': completedReviewCount,
+            'averageMedicalScore': currentAverageScore,
             'updatedAt': FieldValue.serverTimestamp(),
           };
 
-          if (completedReviewCount < 3) {
+          if (completedReviewCount < minimumMedicalReviews) {
             transaction.update(referralRef, updateData);
             return null;
           }
 
-          final averageTotal = _averageScore(reviews);
           final finalScore = _scoreFromReviews(reviews);
-          final finalStatus = _finalStatusForScore(averageTotal);
+          final finalTotalScore = finalScore.total;
+          final finalStatus = _finalStatusForScore(finalTotalScore);
 
           updateData.addAll({
             'status': finalStatus,
             'medicalScore': finalScore.toMap(),
-            'totalScore': finalScore.total,
-            'averageMedicalScore': averageTotal,
+            'totalScore': finalTotalScore,
+            'averageMedicalScore': finalTotalScore,
             'priorityLevel': finalScore.priorityLevel,
             'finalMedicalDecision': finalStatus,
             'reviewedAt': FieldValue.serverTimestamp(),
@@ -236,7 +240,8 @@ class ReferralsRepository {
 
           return _MedicalReviewCompletion(
             finalStatus: finalStatus,
-            totalScore: finalScore.total,
+            totalScore: finalTotalScore,
+            priorityLevel: finalScore.priorityLevel,
             patientIdOrNationalId: data['patientId']?.toString() ?? '',
             patientNationalId: data['patientNationalId']?.toString() ?? '',
             patientName: data['patientName']?.toString() ?? '',
@@ -244,33 +249,47 @@ class ReferralsRepository {
         });
 
     if (completion != null) {
-      final patientUid = await _resolvePatientUidForNotification(
-        patientIdOrNationalId: completion.patientIdOrNationalId,
-        patientNationalId: completion.patientNationalId,
-      );
-      final statusText = completion.finalStatus == 'accepted' ? '????' : '???';
-
-      if (patientUid.isNotEmpty) {
-        await _notificationsRepo.sendNotificationToPatient(
-          patientUid: patientUid,
-          title: '?? ????? ????? ????? ?????',
-          body:
-              '?? $statusText ?????? ??? ?????? ????? 3 ?????. ??????? ????????: ${completion.totalScore}/100.',
-          type: 'system_alert',
-          relatedId: referralId,
-          routeName: 'casePatient',
-        );
-      }
-
-      await _notificationsRepo.sendNotificationToAdmin(
-        title: '????? ????? ???? ????',
-        body:
-            '????? ????? ???? ${completion.patientName.isEmpty ? '????' : completion.patientName} ?? 3 ?????? ??????? ???????: $statusText.',
-        type: 'system_alert',
-        relatedId: referralId,
-        routeName: 'casesList',
+      await _notifyMedicalReviewCompletion(
+        referralId: referralId,
+        completion: completion,
       );
     }
+  }
+
+  Future<void> _notifyMedicalReviewCompletion({
+    required String referralId,
+    required _MedicalReviewCompletion completion,
+  }) async {
+    final patientUid = await _resolvePatientUidForNotification(
+      patientIdOrNationalId: completion.patientIdOrNationalId,
+      patientNationalId: completion.patientNationalId,
+    );
+    final statusText = _decisionLabel(completion.finalStatus);
+    final priorityText = _priorityLabel(completion.priorityLevel);
+    final patientName = completion.patientName.isEmpty
+        ? 'مريض غير محدد'
+        : completion.patientName;
+
+    if (patientUid.isNotEmpty) {
+      await _notificationsRepo.sendNotificationToPatient(
+        patientUid: patientUid,
+        title: 'صدرت نتيجة التقييم الطبي',
+        body:
+            'تم تقييم حالتك من $minimumMedicalReviews أطباء. القرار: $statusText، الأولوية: $priorityText، النقاط: ${completion.totalScore}/100.',
+        type: 'medical_review_completed',
+        relatedId: referralId,
+        routeName: 'casePatient',
+      );
+    }
+
+    await _notificationsRepo.sendNotificationToAdmin(
+      title: 'اكتمل تقييم حالة طبية',
+      body:
+          'اكتمل تقييم حالة $patientName من $minimumMedicalReviews أطباء. القرار: $statusText، الأولوية: $priorityText، النقاط: ${completion.totalScore}/100.',
+      type: 'medical_review_completed',
+      relatedId: referralId,
+      routeName: 'casesList',
+    );
   }
 
   Future<String> _ensurePatientUid(
@@ -620,12 +639,31 @@ class ReferralsRepository {
   static String _finalStatusForScore(int score) {
     return score >= 50 ? 'accepted' : 'rejected';
   }
+
+  static String _decisionLabel(String status) {
+    return status == 'accepted' ? 'مقبولة' : 'مرفوضة';
+  }
+
+  static String _priorityLabel(String priorityLevel) {
+    switch (priorityLevel) {
+      case 'critical':
+        return 'قصوى';
+      case 'high':
+        return 'عالية';
+      case 'medium':
+        return 'متوسطة';
+      case 'low':
+      default:
+        return 'منخفضة';
+    }
+  }
 }
 
 class _MedicalReviewCompletion {
   const _MedicalReviewCompletion({
     required this.finalStatus,
     required this.totalScore,
+    required this.priorityLevel,
     required this.patientIdOrNationalId,
     required this.patientNationalId,
     required this.patientName,
@@ -633,6 +671,7 @@ class _MedicalReviewCompletion {
 
   final String finalStatus;
   final int totalScore;
+  final String priorityLevel;
   final String patientIdOrNationalId;
   final String patientNationalId;
   final String patientName;
