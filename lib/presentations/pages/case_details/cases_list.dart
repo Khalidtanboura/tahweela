@@ -127,19 +127,22 @@ class _CasesListState extends ConsumerState<CasesList> {
                       );
                     }
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(18, 22, 18, 24),
-                      itemCount: filteredReferrals.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        return _ReferralCard(
-                          referral: filteredReferrals[index],
-                          displayIndex:
-                              referrals.indexOf(filteredReferrals[index]) + 1,
-                          mode: widget.mode,
-                        );
-                      },
+                    return Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(18, 22, 18, 24),
+                        itemCount: filteredReferrals.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          return _ReferralCard(
+                            referral: filteredReferrals[index],
+                            displayIndex:
+                                referrals.indexOf(filteredReferrals[index]) + 1,
+                            mode: widget.mode,
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
@@ -182,7 +185,7 @@ class _FilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+      padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
@@ -227,7 +230,7 @@ class _FilterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Container(
-          height: 56,
+          height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 22),
           alignment: Alignment.center,
           child: Row(
@@ -237,7 +240,7 @@ class _FilterChip extends StatelessWidget {
                 const Icon(
                   Icons.check_rounded,
                   color: Color(0xFF16A34A),
-                  size: 24,
+                  size: 18,
                 ),
                 const SizedBox(width: 8),
               ],
@@ -247,7 +250,7 @@ class _FilterChip extends StatelessWidget {
                   color: selected
                       ? const Color(0xFF159447)
                       : const Color(0xFF111827),
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                 ),
               ),
@@ -320,7 +323,7 @@ class _ReferralCard extends ConsumerWidget {
                       backgroundColor: statusStyle.backgroundColor,
                       textColor: statusStyle.textColor,
                     ),
-                    const SizedBox(height: 76),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -334,7 +337,6 @@ class _ReferralCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -344,7 +346,7 @@ class _ReferralCard extends ConsumerWidget {
                         textAlign: TextAlign.right,
                         style: const TextStyle(
                           color: Color(0xFF1E5CC8),
-                          fontSize: 22,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -355,7 +357,7 @@ class _ReferralCard extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 21,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF111827),
                         ),
@@ -599,7 +601,7 @@ class _PriorityPill extends StatelessWidget {
         style: TextStyle(
           color: style.textColor,
           fontWeight: FontWeight.bold,
-          fontSize: 15,
+          fontSize: 12,
         ),
       ),
     );
@@ -615,8 +617,8 @@ class _ScoreRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 58,
-      height: 58,
+      width: 45,
+      height: 45,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -625,7 +627,7 @@ class _ScoreRing extends StatelessWidget {
             height: 58,
             child: CircularProgressIndicator(
               value: score / 100,
-              strokeWidth: 6,
+              strokeWidth: 4,
               backgroundColor: const Color(0xFFE2E8F0),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
