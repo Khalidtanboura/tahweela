@@ -66,6 +66,8 @@ class NotificationModel {
     switch (type) {
       case 'new_referral':
         return Icons.assignment_turned_in_outlined;
+      case 'medical_review_completed':
+        return Icons.fact_check_outlined;
       case 'complaint_update':
         return Icons.warning_amber_rounded;
       case 'system_alert':
@@ -75,6 +77,8 @@ class NotificationModel {
   }
 
   Color get iconColor {
+    if (type == 'medical_review_completed') return const Color(0xFF2563EB);
+
     switch (type) {
       case 'new_referral':
         return const Color(0xFF16A34A); // أخضر تحويلات
