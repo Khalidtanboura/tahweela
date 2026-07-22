@@ -90,7 +90,7 @@ class _UserManagmentState extends State<UserManagment> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl,
+      textDirection: TextDirection.ltr,
       child: Scaffold(
         backgroundColor: const Color(0xffF8FAFC),
         body: SafeArea(
@@ -254,7 +254,7 @@ class _UserCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0F172A),
                   ),
@@ -296,8 +296,8 @@ class _UserCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Container(
-            width: 76,
-            height: 76,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: style.iconBackground,
               shape: BoxShape.circle,
